@@ -19,5 +19,5 @@ jobs:
 
       # Start the branch deployment
       - uses: ./
-        id: comment
-
+        with:
+          body: hello world!
