@@ -1,9 +1,8 @@
 name: "sample-workflow"
 
 on:
-  pull_request:
-    branches:
-      - main
+  issue_comment:
+    types: [created]
 
 permissions:
   issues: write
@@ -11,7 +10,7 @@ permissions:
 
 jobs:
   sample:
-    if: github.event_name == 'pull_request' && github.event.action == 'opened' # only run on new PRs or Issues
+    # if: github.event_name == 'pull_request' && github.event.action == 'opened' # only run on new PRs or Issues
     runs-on: ubuntu-latest
     steps:
       # Need to checkout for testing the Action in this repo
