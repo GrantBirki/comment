@@ -94,7 +94,7 @@ async function run() {
     if (inputs.commentId) {
       // Edit a comment
       if (!inputs.body && !inputs.reactions) {
-        core.setFailed("Missing either comment 'body' or 'reactions'.")
+        core.setFailed("Missing either comment 'body' or 'reactions'")
         return
       }
 
