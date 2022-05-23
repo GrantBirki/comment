@@ -1,0 +1,40 @@
+name: 'Create or Update Comment'
+description: 'GitHub Action to create, update, or add a reaction to any issue or pull request'
+author: "Grant Birkinbine"
+inputs:
+  token:
+    description: 'GITHUB_TOKEN or a repo scoped PAT.'
+    default: ${{ github.token }}
+    required: true
+  repository:
+    description: 'The full name of the repository in which to create or update a comment.'
+    default: ${{ github.repository }}
+    required: true
+  issue-number:
+    description: 'The number of the issue or pull request in which to create a comment.'
+    required: false
+  comment-id:
+    description: 'The id of the comment to update.'
+    required: false
+  body:
+    description: 'The comment body.'
+    required: false
+  edit-mode:
+    description: 'The mode when updating a comment, "replace" or "append".'
+    default: append
+    required: false
+  reaction-type:
+    description: 'Deprecated in favour of `reactions`'
+    required: false
+  reactions:
+    description: 'A comma separated list of reactions to add to the comment.'
+    required: false
+outputs:
+  comment-id:
+    description: 'The id of the created comment'
+runs:
+  using: 'node16'
+  main: 'dist/index.js'
+branding:
+  icon: 'message-square'  
+  color: 'gray-dark'
