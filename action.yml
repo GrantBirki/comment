@@ -13,7 +13,7 @@ inputs:
   issue-number:
     description: 'The number of the issue or pull request in which to create a comment'
     required: true
-    default: ${{ github.issue.number }}
+    default: ${{github.event.issue.number}}
   comment-id:
     description: 'The id of the comment to update'
     required: false
