@@ -19,7 +19,7 @@ jobs:
       # Start the branch deployment
       - uses: ./
         with:
-          file: demo/plain-sample.md
+          file: demo/should-fail.md
           # vars: |
           #   sha: ${{ github.sha }}
           #   environment: production
