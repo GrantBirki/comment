@@ -93,7 +93,7 @@ For more information about **templating**, be sure to check out the [templating]
 | --- | --- | --- | --- |
 | `token` | `GITHUB_TOKEN` (`issues: write`, `pull-requests: write`) or a `repo` scoped [PAT](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) | true | `${{ github.token }}` |
 | `repository` | The full name of the repository in which to create or update a comment | true | `${{ github.repository }}` |
-| `issue-number` | The number of the issue or pull request in which to create a comment | true | `${{ github.event.issue.number }}` |
+| `issue-number` | The number of the issue or pull request in which to create a comment | true | `${{ github.event.number }}` |
 | `comment-id` | The id of the comment to update | false |  |
 | `body` | The comment body (string) | false | |
 | `file` | The path to a file to use as a comment body | false | |
