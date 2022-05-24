@@ -144,18 +144,34 @@ There are two ways to leverage templates using this Action:
 - Simple Template - Just pass in a `file: <path>` to the Action
 - Template Rendering - Pass in a `file: <path>` and `vars: <values>` to the Action
 
+> ⚠️ Important: Make sure to run the [action/checkout](https://github.com/actions/checkout) Action *before* this Action if using the `file:` input so the action can actually read files from your repo
+
 `file` and `vars` explained:
 
 - `file` is the path to a markdown file in your repository to load as a template
 - `vars` are template variables to use when rendering your markdown file template
 
-The `vars` input is a yaml string that will be parsed and converted to a map of key/value pairs. An example can be seen below:
+The `vars` input is a yaml string that will be parsed and converted to a map of key/value pairs. An example can be seen below
+
+Actions workflow:
 
 ```yml
-  vars: |
-    sha: ${{ github.sha }}
-    environment: production
-    app: cool-app
+  with:
+    file: demo/render-sample.md
+    vars: |
+      sha: ${{ github.sha }}
+      environment: production
+      app: cool-app
+```
+
+Markdown Template:
+
+```markdown
+# Deployment Status 🚀
+
+**{{ app }}** has been successfully deployed to **{{ environment }}**
+
+- SHA: `{{ sha }}`
 ```
 
 This Action uses [nunjucks](https://github.com/mozilla/nunjucks) to render template files with the `vars` variables provided. You can fully leverage all the features nunjucks has to offer to custimize templates to your heart's content.
@@ -186,6 +202,8 @@ jobs:
           comment-id: ${{ github.event.comment.id }}
           reactions: eyes
 ```
+
+> You can also use the [find-comment](https://github.com/peter-evans/find-comment) Action to locate the comment id in many different ways
 
 ### Error: Resource not Accessible by Integration ❌
 
