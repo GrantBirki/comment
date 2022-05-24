@@ -205,6 +205,19 @@ jobs:
 
 > You can also use the [find-comment](https://github.com/peter-evans/find-comment) Action to locate the comment id in many different ways
 
+### Error: Repository Not Found 🚫
+
+If you are trying to use this Action with its template features, you will need to checkout the repository first before calling this Action. This ensure the proper files are available to be read by the Action. If your `actions/checkout` job fails with `Repository Not Found`, it is likely due to missing permissions. Try adding this at the top of your Actions workflow file:
+
+```yml
+permissions:
+  issues: write # needed for creating comments on issues
+  pull-requests: write # needed for creating comments on pull requests
+  contents: read # bingo!
+```
+
+Assigning `read` to the `contents` permission will allow Actions to checkout your repository
+
 ### Error: Resource not Accessible by Integration ❌
 
 Common causes can be seen below
