@@ -22,7 +22,6 @@ The section below will contain a few common examples for how you can use this Ac
     - name: Create comment
       uses: GrantBirki/comment@vX.X.X
       with:
-        issue-number: 1
         body: |
           This is a multi-line test comment
 
@@ -120,6 +119,23 @@ Note that in order to read the step output the action step must have an id.
     - name: Check outputs
       run: echo "Comment ID - ${{ steps.comment.outputs.comment-id }}"
 ```
+
+### Issue Number 🔢
+
+> Common error: `Missing either 'issue-number' or 'comment-id'`
+
+The `issue-number` field can be omitted depending on the type of workflow you are using and it will attempt to find the PR/issue number from the event context automatically
+
+The fallback value is as follows: `${{ github.event.number }}`
+
+You can always pass in an exact value for the `issue-number` field if you wish to override the automatic lookup. The example below obtains the issue number from the event context in a specific way:
+
+```yaml
+  with:
+    issue-number: ${{ github.event.issue.number }}
+```
+
+> Note: Pull Requests are just Issues under the hood, so when we refer to the `issue-number` that could also be exchanged for a PR number
 
 ### Templating
 
