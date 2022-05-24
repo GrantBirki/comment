@@ -19,8 +19,8 @@ jobs:
       # Start the branch deployment
       - uses: ./
         with:
-          body: hello world!
-          # vars: |
-          #   sha: ${{ github.sha }}
-          #   test: hello world
-          #   app: cool-app
+          file: demo/sample-deploy.md
+          vars: |
+            sha: ${{ github.sha }}
+            environment: production
+            app: cool-app
