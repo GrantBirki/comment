@@ -20,6 +20,12 @@ inputs:
   body:
     description: 'The comment body'
     required: false
+  vars:
+    description: 'Template variables in yaml format for rendering from a file'
+    required: false
+  file:
+    description: 'The path to a file containing template variables in yaml format for rendering'
+    required: false
   edit-mode:
     description: 'The mode when updating a comment, "replace" or "append"'
     default: append

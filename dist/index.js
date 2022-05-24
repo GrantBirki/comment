@@ -9220,11 +9220,17 @@ async function run() {
       commentId: core.getInput('comment-id'),
       body: core.getInput('body'),
       editMode: core.getInput('edit-mode'),
+      vars: core.getInput('vars'),
       reactions: core.getInput('reactions')
         ? core.getInput('reactions')
         : core.getInput('reaction-type')
     }
     core.debug(`Inputs: ${inspect(inputs)}`)
+
+    //testing
+
+    core.info(inputs.vars)
+    core.info(typeof inputs.vars)
 
     const repository = inputs.repository
       ? inputs.repository
