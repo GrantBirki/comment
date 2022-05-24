@@ -98,7 +98,7 @@ For more information about **templating**, be sure to check out the [templating]
 | `file` | The path to a file to use as a comment body | false | |
 | `vars` | Template variables in yaml format for rendering with a provided file | false | |
 | `edit-mode` | The mode when updating a comment, `replace` or `append` | false | `append` |
-| `reactions` | A comma separated list of reactions to add to the comment (`+1`, `-1`, `laugh`, `confused`, `heart`, `hooray`, `rocket`, `eyes`) | | |
+| `reactions` | A comma separated list of reactions to add to the comment (`+1`, `-1`, `laugh`, `confused`, `heart`, `hooray`, `rocket`, `eyes`) | false | |
 
 #### Outputs 📤
 
