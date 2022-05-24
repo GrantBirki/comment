@@ -1,6 +1,8 @@
 const {inspect} = require('util')
 const core = require('@actions/core')
 const github = require('@actions/github')
+const nunjucks = require('nunjucks')
+const yaml = require('js-yaml')
 
 const REACTION_TYPES = [
   '+1',
@@ -77,11 +79,6 @@ async function run() {
     }
     core.debug(`Inputs: ${inspect(inputs)}`)
 
-    //testing
-
-    core.info(inputs.vars)
-    core.info(typeof inputs.vars)
-
     const repository = inputs.repository
       ? inputs.repository
       : process.env.GITHUB_REPOSITORY
@@ -91,7 +88,7 @@ async function run() {
     const editMode = inputs.editMode ? inputs.editMode : 'append'
     core.debug(`editMode: ${editMode}`)
     if (!['append', 'replace'].includes(editMode)) {
-      core.setFailed(`Invalid edit-mode '${editMode}'.`)
+      core.setFailed(`Invalid edit-mode '${editMode}'`)
       return
     }
 
@@ -124,7 +121,7 @@ async function run() {
           comment_id: inputs.commentId,
           body: commentBody
         })
-        core.info(`Updated comment id '${inputs.commentId}'.`)
+        core.info(`Updated comment id '${inputs.commentId}'`)
         core.setOutput('comment-id', inputs.commentId)
       }
 
@@ -135,7 +132,7 @@ async function run() {
     } else if (inputs.issueNumber) {
       // Create a comment
       if (!inputs.body) {
-        core.setFailed("Missing comment 'body'.")
+        core.setFailed("Missing comment 'body'")
         return
       }
       const {data: comment} = await octokit.rest.issues.createComment({
@@ -145,7 +142,7 @@ async function run() {
         body: inputs.body
       })
       core.info(
-        `Created comment id '${comment.id}' on issue '${inputs.issueNumber}'.`
+        `Created comment id '${comment.id}' on issue '${inputs.issueNumber}'`
       )
       core.setOutput('comment-id', comment.id)
 
@@ -154,7 +151,7 @@ async function run() {
         await addReactions(octokit, repo, comment.id, inputs.reactions)
       }
     } else {
-      core.setFailed("Missing either 'issue-number' or 'comment-id'.")
+      core.setFailed("Missing either 'issue-number' or 'comment-id'")
       return
     }
   } catch (error) {
