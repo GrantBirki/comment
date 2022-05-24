@@ -1,4 +1,4 @@
-name: 'comment'
+name: 'comment-action'
 description: 'GitHub Action to create, update, or add a reaction to any issue or pull request - with template support!'
 author: "Grant Birkinbine"
 inputs:
