@@ -1,5 +1,5 @@
-name: 'Create or Update Comment'
-description: 'GitHub Action to create, update, or add a reaction to any issue or pull request'
+name: 'comment'
+description: 'GitHub Action to create, update, or add a reaction to any issue or pull request - with template support!'
 author: "Grant Birkinbine"
 inputs:
   token:
