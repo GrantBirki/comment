@@ -1,4 +1,4 @@
-name: "sample-workflow"
+name: sample-workflow
 
 on:
   issue_comment:
@@ -16,11 +16,11 @@ jobs:
       # Need to checkout for testing the Action in this repo
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # pin@v3.0.2
 
-      # Start the branch deployment
+      # Add a comment to the issue or PR
       - uses: ./
         with:
-          file: demo/should-fail.md
-          # vars: |
-          #   sha: ${{ github.sha }}
-          #   environment: production
-          #   app: cool-app
+          file: demo/render-sample.md
+          vars: |
+            sha: ${{ github.sha }}
+            environment: production
+            app: cool-app
