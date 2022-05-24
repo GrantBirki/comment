@@ -32,7 +32,8 @@
     "babel-core": "^6.26.3",
     "babel-jest": "^28.1.0",
     "dedent-js": "^1.0.1",
-    "make-coverage-badge": "^1.2.0"
+    "make-coverage-badge": "^1.2.0",
+    "nunjucks": "^3.2.3"
   },
   "jest": {
     "coverageReporters": [
