@@ -1,9 +1,11 @@
 name: sample-workflow
 
+# Change the 'on:' values to determine when your workflow will run
 on:
   issue_comment:
     types: [created]
 
+# These are the minimum permissions required to run the workflow and comment on both PRs and Issues
 permissions:
   issues: write
   pull-requests: write
@@ -13,11 +15,11 @@ jobs:
     # if: github.event_name == 'pull_request' && github.event.action == 'opened' # only run on new PRs or Issues
     runs-on: ubuntu-latest
     steps:
-      # Need to checkout for testing the Action in this repo
+      # It is required to checkout the repo if using the 'file:' param to read a file for template rendering
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # pin@v3.0.2
 
       # Add a comment to the issue or PR
-      - uses: ./
+      - uses: GrantBirki/comment@vX.X.X
         with:
           file: demo/render-sample.md
           vars: |
