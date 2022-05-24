@@ -19,6 +19,10 @@ jobs:
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # pin@v3.0.2
 
       # Add a comment to the issue or PR
-      - uses: GrantBirki/comment@v1.0.0
+      - uses: GrantBirki/comment@vX.X.X
         with:
-          file: demo/plain-sample.md
+          file: demo/render-sample.md
+          vars: |
+            sha: ${{ github.sha }}
+            environment: production
+            app: cool-app
