@@ -208,6 +208,17 @@ jobs:
             {% endfor %}
 ```
 
+You can also put the iteration logic in the template file itself rather than using the `body` input in the workflow file:
+
+```markdown
+# Files
+{% for file in files.split(",") %}
+- `{{ file }}`
+{% else %}
+- No file
+{% endfor %}
+```
+
 > Source: [#11](https://github.com/GrantBirki/comment/issues/11)
 
 ### Where to Find the ID of a Comment 🔍
