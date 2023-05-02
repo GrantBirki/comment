@@ -182,6 +182,34 @@ You can even pass in GitHub Actions context variables as seen above (ex: `${{ gi
 
 > Checkout a sample workflow file [here](demo/sample-workflow.yml) to see this in action
 
+#### Iterating Over Arrays in Templates
+
+This example shows how you can iterate over an array of values and populate a template with them:
+
+```yaml
+jobs:
+  example:
+    runs-on: ubuntu-latest
+    steps:
+      - id: run
+        run:  echo "files=a,b,c" >> "$GITHUB_OUTPUT"
+
+      - uses: GrantBirki/comment@vX.X.X
+        with:
+          # other config
+          vars: |
+            files: ${{ steps.run.outputs.files }}
+          body: |
+            # Files
+            {% for file in files.split(",") %}
+            - `{{ file }}`
+            {% else %}
+            - No file
+            {% endfor %}
+```
+
+> Source: [#11](https://github.com/GrantBirki/comment/issues/11)
+
 ### Where to Find the ID of a Comment 🔍
 
 > How to find the id of a comment will depend a lot on the use case
