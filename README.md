@@ -1,6 +1,6 @@
 # Comment Action 💬
 
-[![Check dist/](https://github.com/GrantBirki/comment/actions/workflows/check-dist.yml/badge.svg)](https://github.com/GrantBirki/comment/actions/workflows/check-dist.yml)
+[![package-check](https://github.com/GrantBirki/comment/actions/workflows/package-check.yml/badge.svg)](https://github.com/GrantBirki/comment/actions/workflows/package-check.yml) [![lint](https://github.com/GrantBirki/comment/actions/workflows/lint.yml/badge.svg)](https://github.com/GrantBirki/comment/actions/workflows/lint.yml)
 
 GitHub Action to create, update, or add a reaction to any issue or pull request
 
