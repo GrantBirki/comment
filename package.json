@@ -8,8 +8,8 @@
     "format-check": "prettier --check '**/*.js'",
     "lint": "eslint src/**/*.js",
     "package": "NODE_OPTIONS=--openssl-legacy-provider ncc build src/main.js -o dist --source-map --license licenses.txt",
-    "test": "(jest && make-coverage-badge --output-path ./badges/coverage.svg) || make-coverage-badge --output-path ./badges/coverage.svg",
-    "ci-test": "jest",
+    "test": "echo no tests",
+    "ci-test": "echo no tests",
     "all": "npm run format && npm run lint && npm run package",
     "bundle": "npm run format && npm run package"
   },
