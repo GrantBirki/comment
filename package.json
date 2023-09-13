@@ -2,7 +2,7 @@
   "name": "comment",
   "version": "0.0.0",
   "description": "GitHub Action to create, update, or add a reaction to any issue or pull request",
-  "main": "lib/main.js",
+  "main": "src/main.js",
   "scripts": {
     "format": "prettier --write '**/*.js'",
     "format-check": "prettier --check '**/*.js'",
