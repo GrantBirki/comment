@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # It is required to checkout the repo if using the 'file:' param to read a file for template rendering
-      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # pin@v3.0.2
+      - uses: actions/checkout@v4
 
       # Add a comment to the issue or PR
       - uses: GrantBirki/comment@vX.X.X
