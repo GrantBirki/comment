@@ -96,6 +96,19 @@ async function run() {
         ? core.getInput('reactions')
         : core.getInput('reaction-type')
     }
+
+    // in most cases, ${{ github.event.number }} is the issue number
+    // if it is blank, then try to fetch it from the context
+    core.debug(
+      `github.context.payload.issue.number: ${github.context.payload.issue.number}`
+    )
+    if (!inputs.issueNumber) {
+      core.debug(
+        `issueNumber is not set, trying to fetch from the github.context`
+      )
+      inputs.issueNumber = github.context.payload.issue.number
+    }
+
     core.debug(`Inputs: ${inspect(inputs)}`)
 
     // Get the GitHub repository
