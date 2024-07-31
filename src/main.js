@@ -96,6 +96,23 @@ async function run() {
         ? core.getInput('reactions')
         : core.getInput('reaction-type')
     }
+
+    // in most cases, ${{ github.event.number }} is the issue number
+    // if it is blank, then try to fetch it from the context
+    const issueNumberFallback =
+      github &&
+      github.context &&
+      github.context.payload &&
+      github.context.payload.issue &&
+      github.context.payload.issue.number
+    core.debug(`issueNumberFallback: ${issueNumberFallback}`)
+    if (!inputs.issueNumber) {
+      core.debug(
+        `issueNumber is not set, trying to set from the issueNumberFallback: ${issueNumberFallback}`
+      )
+      inputs.issueNumber = issueNumberFallback
+    }
+
     core.debug(`Inputs: ${inspect(inputs)}`)
 
     // Get the GitHub repository
