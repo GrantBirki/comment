@@ -97,6 +97,8 @@ async function run() {
         : core.getInput('reaction-type')
     }
 
+    core.debug(`issueNumber: ${inputs.issueNumber}`)
+
     // in most cases, ${{ github.event.number }} is the issue number
     // if it is blank, then try to fetch it from the context
     const issueNumberFallback =
