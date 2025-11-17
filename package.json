@@ -51,7 +51,7 @@
     "@types/node": "^20.12.4",
     "@vercel/ncc": "^0.38.1",
     "eslint": "^8.57.0",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^4.1.1",
     "prettier": "^3.3.3",
     "@babel/core": "^7.24.4",
     "babel-jest": "^29.7.0"
