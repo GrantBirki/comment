@@ -34923,505 +34923,16 @@ module.exports = {
 
 /***/ }),
 
-/***/ 568:
-/***/ ((module) => {
+/***/ 2860:
+/***/ ((__unused_webpack_module, __webpack_exports__, __nccwpck_require__) => {
 
-module.exports = eval("require")("chokidar");
 
+// EXPORTS
+__nccwpck_require__.d(__webpack_exports__, {
+  eF: () => (/* binding */ run)
+});
 
-/***/ }),
-
-/***/ 2613:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("assert");
-
-/***/ }),
-
-/***/ 3167:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("domain");
-
-/***/ }),
-
-/***/ 4434:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("events");
-
-/***/ }),
-
-/***/ 9896:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("fs");
-
-/***/ }),
-
-/***/ 8611:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("http");
-
-/***/ }),
-
-/***/ 5692:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("https");
-
-/***/ }),
-
-/***/ 9278:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("net");
-
-/***/ }),
-
-/***/ 4589:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:assert");
-
-/***/ }),
-
-/***/ 6698:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:async_hooks");
-
-/***/ }),
-
-/***/ 4573:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:buffer");
-
-/***/ }),
-
-/***/ 7540:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:console");
-
-/***/ }),
-
-/***/ 7598:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:crypto");
-
-/***/ }),
-
-/***/ 3053:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:diagnostics_channel");
-
-/***/ }),
-
-/***/ 610:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:dns");
-
-/***/ }),
-
-/***/ 8474:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:events");
-
-/***/ }),
-
-/***/ 7067:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:http");
-
-/***/ }),
-
-/***/ 2467:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:http2");
-
-/***/ }),
-
-/***/ 7030:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:net");
-
-/***/ }),
-
-/***/ 643:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:perf_hooks");
-
-/***/ }),
-
-/***/ 1792:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:querystring");
-
-/***/ }),
-
-/***/ 7075:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:stream");
-
-/***/ }),
-
-/***/ 1692:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:tls");
-
-/***/ }),
-
-/***/ 3136:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:url");
-
-/***/ }),
-
-/***/ 7975:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:util");
-
-/***/ }),
-
-/***/ 3429:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:util/types");
-
-/***/ }),
-
-/***/ 5919:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:worker_threads");
-
-/***/ }),
-
-/***/ 8522:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:zlib");
-
-/***/ }),
-
-/***/ 6928:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("path");
-
-/***/ }),
-
-/***/ 3193:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("string_decoder");
-
-/***/ }),
-
-/***/ 4756:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("tls");
-
-/***/ }),
-
-/***/ 9023:
-/***/ ((module) => {
-
-module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("util");
-
-/***/ }),
-
-/***/ 1120:
-/***/ ((module) => {
-
-var __webpack_unused_export__;
-
-
-const NullObject = function NullObject () { }
-NullObject.prototype = Object.create(null)
-
-/**
- * RegExp to match *( ";" parameter ) in RFC 7231 sec 3.1.1.1
- *
- * parameter     = token "=" ( token / quoted-string )
- * token         = 1*tchar
- * tchar         = "!" / "#" / "$" / "%" / "&" / "'" / "*"
- *               / "+" / "-" / "." / "^" / "_" / "`" / "|" / "~"
- *               / DIGIT / ALPHA
- *               ; any VCHAR, except delimiters
- * quoted-string = DQUOTE *( qdtext / quoted-pair ) DQUOTE
- * qdtext        = HTAB / SP / %x21 / %x23-5B / %x5D-7E / obs-text
- * obs-text      = %x80-FF
- * quoted-pair   = "\" ( HTAB / SP / VCHAR / obs-text )
- */
-const paramRE = /; *([!#$%&'*+.^\w`|~-]+)=("(?:[\v\u0020\u0021\u0023-\u005b\u005d-\u007e\u0080-\u00ff]|\\[\v\u0020-\u00ff])*"|[!#$%&'*+.^\w`|~-]+) */gu
-
-/**
- * RegExp to match quoted-pair in RFC 7230 sec 3.2.6
- *
- * quoted-pair = "\" ( HTAB / SP / VCHAR / obs-text )
- * obs-text    = %x80-FF
- */
-const quotedPairRE = /\\([\v\u0020-\u00ff])/gu
-
-/**
- * RegExp to match type in RFC 7231 sec 3.1.1.1
- *
- * media-type = type "/" subtype
- * type       = token
- * subtype    = token
- */
-const mediaTypeRE = /^[!#$%&'*+.^\w|~-]+\/[!#$%&'*+.^\w|~-]+$/u
-
-// default ContentType to prevent repeated object creation
-const defaultContentType = { type: '', parameters: new NullObject() }
-Object.freeze(defaultContentType.parameters)
-Object.freeze(defaultContentType)
-
-/**
- * Parse media type to object.
- *
- * @param {string|object} header
- * @return {Object}
- * @public
- */
-
-function parse (header) {
-  if (typeof header !== 'string') {
-    throw new TypeError('argument header is required and must be a string')
-  }
-
-  let index = header.indexOf(';')
-  const type = index !== -1
-    ? header.slice(0, index).trim()
-    : header.trim()
-
-  if (mediaTypeRE.test(type) === false) {
-    throw new TypeError('invalid media type')
-  }
-
-  const result = {
-    type: type.toLowerCase(),
-    parameters: new NullObject()
-  }
-
-  // parse parameters
-  if (index === -1) {
-    return result
-  }
-
-  let key
-  let match
-  let value
-
-  paramRE.lastIndex = index
-
-  while ((match = paramRE.exec(header))) {
-    if (match.index !== index) {
-      throw new TypeError('invalid parameter format')
-    }
-
-    index += match[0].length
-    key = match[1].toLowerCase()
-    value = match[2]
-
-    if (value[0] === '"') {
-      // remove quotes and escapes
-      value = value
-        .slice(1, value.length - 1)
-
-      quotedPairRE.test(value) && (value = value.replace(quotedPairRE, '$1'))
-    }
-
-    result.parameters[key] = value
-  }
-
-  if (index !== header.length) {
-    throw new TypeError('invalid parameter format')
-  }
-
-  return result
-}
-
-function safeParse (header) {
-  if (typeof header !== 'string') {
-    return defaultContentType
-  }
-
-  let index = header.indexOf(';')
-  const type = index !== -1
-    ? header.slice(0, index).trim()
-    : header.trim()
-
-  if (mediaTypeRE.test(type) === false) {
-    return defaultContentType
-  }
-
-  const result = {
-    type: type.toLowerCase(),
-    parameters: new NullObject()
-  }
-
-  // parse parameters
-  if (index === -1) {
-    return result
-  }
-
-  let key
-  let match
-  let value
-
-  paramRE.lastIndex = index
-
-  while ((match = paramRE.exec(header))) {
-    if (match.index !== index) {
-      return defaultContentType
-    }
-
-    index += match[0].length
-    key = match[1].toLowerCase()
-    value = match[2]
-
-    if (value[0] === '"') {
-      // remove quotes and escapes
-      value = value
-        .slice(1, value.length - 1)
-
-      quotedPairRE.test(value) && (value = value.replace(quotedPairRE, '$1'))
-    }
-
-    result.parameters[key] = value
-  }
-
-  if (index !== header.length) {
-    return defaultContentType
-  }
-
-  return result
-}
-
-__webpack_unused_export__ = { parse, safeParse }
-__webpack_unused_export__ = parse
-module.exports.xL = safeParse
-__webpack_unused_export__ = defaultContentType
-
-
-/***/ })
-
-/******/ });
-/************************************************************************/
-/******/ // The module cache
-/******/ var __webpack_module_cache__ = {};
-/******/ 
-/******/ // The require function
-/******/ function __nccwpck_require__(moduleId) {
-/******/ 	// Check if module is in cache
-/******/ 	var cachedModule = __webpack_module_cache__[moduleId];
-/******/ 	if (cachedModule !== undefined) {
-/******/ 		return cachedModule.exports;
-/******/ 	}
-/******/ 	// Create a new module (and put it into the cache)
-/******/ 	var module = __webpack_module_cache__[moduleId] = {
-/******/ 		// no module.id needed
-/******/ 		// no module.loaded needed
-/******/ 		exports: {}
-/******/ 	};
-/******/ 
-/******/ 	// Execute the module function
-/******/ 	var threw = true;
-/******/ 	try {
-/******/ 		__webpack_modules__[moduleId].call(module.exports, module, module.exports, __nccwpck_require__);
-/******/ 		threw = false;
-/******/ 	} finally {
-/******/ 		if(threw) delete __webpack_module_cache__[moduleId];
-/******/ 	}
-/******/ 
-/******/ 	// Return the exports of the module
-/******/ 	return module.exports;
-/******/ }
-/******/ 
-/************************************************************************/
-/******/ /* webpack/runtime/create fake namespace object */
-/******/ (() => {
-/******/ 	var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
-/******/ 	var leafPrototypes;
-/******/ 	// create a fake namespace object
-/******/ 	// mode & 1: value is a module id, require it
-/******/ 	// mode & 2: merge all properties of value into the ns
-/******/ 	// mode & 4: return value when already ns object
-/******/ 	// mode & 16: return value when it's Promise-like
-/******/ 	// mode & 8|1: behave like require
-/******/ 	__nccwpck_require__.t = function(value, mode) {
-/******/ 		if(mode & 1) value = this(value);
-/******/ 		if(mode & 8) return value;
-/******/ 		if(typeof value === 'object' && value) {
-/******/ 			if((mode & 4) && value.__esModule) return value;
-/******/ 			if((mode & 16) && typeof value.then === 'function') return value;
-/******/ 		}
-/******/ 		var ns = Object.create(null);
-/******/ 		__nccwpck_require__.r(ns);
-/******/ 		var def = {};
-/******/ 		leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];
-/******/ 		for(var current = mode & 2 && value; typeof current == 'object' && !~leafPrototypes.indexOf(current); current = getProto(current)) {
-/******/ 			Object.getOwnPropertyNames(current).forEach((key) => (def[key] = () => (value[key])));
-/******/ 		}
-/******/ 		def['default'] = () => (value);
-/******/ 		__nccwpck_require__.d(ns, def);
-/******/ 		return ns;
-/******/ 	};
-/******/ })();
-/******/ 
-/******/ /* webpack/runtime/define property getters */
-/******/ (() => {
-/******/ 	// define getter functions for harmony exports
-/******/ 	__nccwpck_require__.d = (exports, definition) => {
-/******/ 		for(var key in definition) {
-/******/ 			if(__nccwpck_require__.o(definition, key) && !__nccwpck_require__.o(exports, key)) {
-/******/ 				Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-/******/ 			}
-/******/ 		}
-/******/ 	};
-/******/ })();
-/******/ 
-/******/ /* webpack/runtime/hasOwnProperty shorthand */
-/******/ (() => {
-/******/ 	__nccwpck_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
-/******/ })();
-/******/ 
-/******/ /* webpack/runtime/make namespace object */
-/******/ (() => {
-/******/ 	// define __esModule on exports
-/******/ 	__nccwpck_require__.r = (exports) => {
-/******/ 		if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-/******/ 			Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-/******/ 		}
-/******/ 		Object.defineProperty(exports, '__esModule', { value: true });
-/******/ 	};
-/******/ })();
-/******/ 
-/******/ /* webpack/runtime/compat */
-/******/ 
-/******/ if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = new URL('.', import.meta.url).pathname.slice(import.meta.url.match(/^file:\/\/\/\w:/) ? 1 : 0, -1) + "/";
-/******/ 
-/************************************************************************/
-var __webpack_exports__ = {};
+// UNUSED EXPORTS: REACTION_TYPES, SafeTemplateLoader, addReactions, createComment, getInputs, parseVars, renderComment, resolveBody, resolveIssueNumber, resolveRepository, sanitizeInputs, updateExistingComment, validReactions
 
 // NAMESPACE OBJECT: ./node_modules/@actions/core/lib/platform.js
 var platform_namespaceObject = {};
@@ -35481,8 +34992,10 @@ __nccwpck_require__.d(github_namespaceObject, {
 var external_node_util_ = __nccwpck_require__(7975);
 ;// CONCATENATED MODULE: external "node:fs"
 const external_node_fs_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:fs");
+var external_node_fs_default = /*#__PURE__*/__nccwpck_require__.n(external_node_fs_namespaceObject);
 ;// CONCATENATED MODULE: external "node:path"
 const external_node_path_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:path");
+var external_node_path_default = /*#__PURE__*/__nccwpck_require__.n(external_node_path_namespaceObject);
 ;// CONCATENATED MODULE: external "os"
 const external_os_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("os");
 ;// CONCATENATED MODULE: ./node_modules/@actions/core/lib/utils.js
@@ -42748,6 +42261,7 @@ function getOctokit(token, options, ...additionalPlugins) {
 //# sourceMappingURL=github.js.map
 // EXTERNAL MODULE: ./node_modules/nunjucks/index.js
 var nunjucks = __nccwpck_require__(8115);
+var nunjucks_default = /*#__PURE__*/__nccwpck_require__.n(nunjucks);
 ;// CONCATENATED MODULE: ./node_modules/js-yaml/dist/js-yaml.mjs
 
 /*! js-yaml 4.1.1 https://github.com/nodeca/js-yaml @license MIT */
@@ -46606,8 +46120,7 @@ var jsYaml = {
 
 
 
-;// CONCATENATED MODULE: ./src/comment.js
-
+;// CONCATENATED MODULE: ./src/comment.ts
 
 
 
@@ -46616,376 +46129,891 @@ var jsYaml = {
 
 
 const REACTION_TYPES = [
-  '+1',
-  '-1',
-  'laugh',
-  'confused',
-  'heart',
-  'hooray',
-  'rocket',
-  'eyes'
-]
-
-class SafeTemplateLoader extends nunjucks.Loader {
-  constructor(searchPath) {
-    super()
-    this.searchPath = external_node_path_namespaceObject.resolve(searchPath)
-    this.realSearchPath = external_node_fs_namespaceObject.existsSync(this.searchPath)
-      ? external_node_fs_namespaceObject.realpathSync(this.searchPath)
-      : null
-    this.noCache = true
-  }
-
-  getSource(name) {
-    if (!this.realSearchPath) {
-      return null
+    '+1',
+    '-1',
+    'laugh',
+    'confused',
+    'heart',
+    'hooray',
+    'rocket',
+    'eyes'
+];
+class SafeTemplateLoader extends (nunjucks_default()).Loader {
+    searchPath;
+    realSearchPath;
+    noCache = true;
+    constructor(searchPath) {
+        super();
+        this.searchPath = external_node_path_default().resolve(searchPath);
+        this.realSearchPath = external_node_fs_default().existsSync(this.searchPath)
+            ? external_node_fs_default().realpathSync(this.searchPath)
+            : null;
     }
-
-    const fullPath = external_node_path_namespaceObject.resolve(this.searchPath, name)
-    const relativePath = external_node_path_namespaceObject.relative(this.searchPath, fullPath)
-
-    if (
-      relativePath.startsWith('..') ||
-      external_node_path_namespaceObject.isAbsolute(relativePath) ||
-      !external_node_fs_namespaceObject.existsSync(fullPath)
-    ) {
-      return null
+    getSource(name) {
+        if (!this.realSearchPath) {
+            return null;
+        }
+        const fullPath = external_node_path_default().resolve(this.searchPath, name);
+        const relativePath = external_node_path_default().relative(this.searchPath, fullPath);
+        if (relativePath.startsWith('..') ||
+            external_node_path_default().isAbsolute(relativePath) ||
+            !external_node_fs_default().existsSync(fullPath)) {
+            return null;
+        }
+        const realFullPath = external_node_fs_default().realpathSync(fullPath);
+        const realRelativePath = external_node_path_default().relative(this.realSearchPath, realFullPath);
+        const stats = external_node_fs_default().statSync(realFullPath);
+        if (realRelativePath.startsWith('..') ||
+            external_node_path_default().isAbsolute(realRelativePath) ||
+            !stats.isFile()) {
+            return null;
+        }
+        return {
+            src: external_node_fs_default().readFileSync(realFullPath, 'utf8'),
+            path: realFullPath,
+            noCache: this.noCache
+        };
     }
-
-    const realFullPath = external_node_fs_namespaceObject.realpathSync(fullPath)
-    const realRelativePath = external_node_path_namespaceObject.relative(this.realSearchPath, realFullPath)
-    const stats = external_node_fs_namespaceObject.statSync(realFullPath)
-
-    if (
-      realRelativePath.startsWith('..') ||
-      external_node_path_namespaceObject.isAbsolute(realRelativePath) ||
-      !stats.isFile()
-    ) {
-      return null
-    }
-
-    return {
-      src: external_node_fs_namespaceObject.readFileSync(realFullPath, 'utf8'),
-      path: realFullPath,
-      noCache: this.noCache
-    }
-  }
 }
-
 function getInputs(actionsCore = core_namespaceObject) {
-  const reactions =
-    actionsCore.getInput('reactions') || actionsCore.getInput('reaction-type')
-
-  return {
-    token: actionsCore.getInput('token'),
-    repository: actionsCore.getInput('repository'),
-    issueNumber: actionsCore.getInput('issue-number'),
-    commentId: actionsCore.getInput('comment-id'),
-    body: actionsCore.getInput('body'),
-    editMode: actionsCore.getInput('edit-mode'),
-    vars: actionsCore.getInput('vars'),
-    file: actionsCore.getInput('file'),
-    reactions
-  }
+    const reactions = actionsCore.getInput('reactions') || actionsCore.getInput('reaction-type');
+    return {
+        token: actionsCore.getInput('token'),
+        repository: actionsCore.getInput('repository'),
+        issueNumber: actionsCore.getInput('issue-number'),
+        commentId: actionsCore.getInput('comment-id'),
+        body: actionsCore.getInput('body'),
+        editMode: actionsCore.getInput('edit-mode'),
+        vars: actionsCore.getInput('vars'),
+        file: actionsCore.getInput('file'),
+        reactions
+    };
 }
-
 function sanitizeInputs(inputs) {
-  return {
-    ...inputs,
-    token: inputs.token ? '[secure]' : ''
-  }
+    return {
+        ...inputs,
+        token: inputs.token ? '[secure]' : ''
+    };
 }
-
 function resolveIssueNumber(issueNumber, githubContext) {
-  if (issueNumber) {
-    return issueNumber
-  }
-
-  const payload = githubContext && githubContext.payload
-  if (!payload) {
-    return ''
-  }
-
-  if (payload.issue && payload.issue.number) {
-    return payload.issue.number
-  }
-
-  if (payload.pull_request && payload.pull_request.number) {
-    return payload.pull_request.number
-  }
-
-  return payload.number || ''
+    if (issueNumber) {
+        return issueNumber;
+    }
+    const payload = githubContext?.payload;
+    if (!payload) {
+        return '';
+    }
+    if (payload.issue?.number) {
+        return payload.issue.number;
+    }
+    if (payload.pull_request?.number) {
+        return payload.pull_request.number;
+    }
+    return payload.number || '';
 }
-
 function resolveRepository(repositoryInput, env = process.env) {
-  const repository = repositoryInput || env.GITHUB_REPOSITORY
-
-  if (!repository) {
-    throw new Error(
-      "Missing repository. Provide the 'repository' input or GITHUB_REPOSITORY."
-    )
-  }
-
-  const parts = repository.split('/')
-  if (parts.length !== 2 || !parts[0] || !parts[1]) {
-    throw new Error(
-      `Invalid repository '${repository}'. Expected 'owner/repo'.`
-    )
-  }
-
-  return {
-    repository,
-    owner: parts[0],
-    repo: parts[1]
-  }
+    const repository = repositoryInput || env.GITHUB_REPOSITORY;
+    if (!repository) {
+        throw new Error("Missing repository. Provide the 'repository' input or GITHUB_REPOSITORY.");
+    }
+    const parts = repository.split('/');
+    if (parts.length !== 2 || !parts[0] || !parts[1]) {
+        throw new Error(`Invalid repository '${repository}'. Expected 'owner/repo'.`);
+    }
+    return {
+        repository,
+        owner: parts[0],
+        repo: parts[1]
+    };
 }
-
 function parseVars(vars) {
-  if (!vars) {
-    return {}
-  }
-
-  const parsed = jsYaml.load(vars, {
-    schema: jsYaml.JSON_SCHEMA,
-    json: true
-  })
-
-  if (parsed === undefined || parsed === null) {
-    return {}
-  }
-
-  if (
-    typeof parsed !== 'object' ||
-    Array.isArray(parsed) ||
-    parsed instanceof Date
-  ) {
-    throw new Error("The 'vars' input must be a YAML mapping")
-  }
-
-  return parsed
+    if (!vars) {
+        return {};
+    }
+    const parsed = jsYaml.load(vars, {
+        schema: jsYaml.JSON_SCHEMA,
+        json: true
+    });
+    if (parsed === undefined || parsed === null) {
+        return {};
+    }
+    if (typeof parsed !== 'object' ||
+        Array.isArray(parsed) ||
+        parsed instanceof Date) {
+        throw new Error("The 'vars' input must be a YAML mapping");
+    }
+    return parsed;
 }
-
 async function renderComment(file, vars) {
-  const yamlVars = parseVars(vars)
-  const resolvedFile = external_node_path_namespaceObject.resolve(file)
-  const templateDirectory = external_node_path_namespaceObject.dirname(resolvedFile)
-  const templateName = external_node_path_namespaceObject.basename(resolvedFile)
-  const environment = new nunjucks.Environment(
-    new SafeTemplateLoader(templateDirectory),
-    {autoescape: true}
-  )
-  return environment.render(templateName, yamlVars)
+    const yamlVars = parseVars(vars);
+    const resolvedFile = external_node_path_default().resolve(file);
+    const templateDirectory = external_node_path_default().dirname(resolvedFile);
+    const templateName = external_node_path_default().basename(resolvedFile);
+    const environment = new (nunjucks_default()).Environment(new SafeTemplateLoader(templateDirectory), { autoescape: true });
+    return environment.render(templateName, yamlVars);
 }
-
+function isReactionType(reaction) {
+    return REACTION_TYPES.includes(reaction);
+}
 function validReactions(reactions, actionsCore = core_namespaceObject) {
-  return [
-    ...new Set(
-      reactions
-        .split(',')
-        .map(item => item.trim())
-        .filter(Boolean)
-        .filter(item => {
-          if (!REACTION_TYPES.includes(item)) {
-            actionsCore.info(`Skipping invalid reaction '${item}'.`)
-            return false
-          }
-          return true
-        })
-    )
-  ]
+    return [
+        ...new Set(reactions
+            .split(',')
+            .map(item => item.trim())
+            .filter(Boolean)
+            .filter((item) => {
+            if (!isReactionType(item)) {
+                actionsCore.info(`Skipping invalid reaction '${item}'.`);
+                return false;
+            }
+            return true;
+        }))
+    ];
 }
-
-async function addReactions(
-  octokit,
-  repo,
-  commentId,
-  reactions,
-  actionsCore = core_namespaceObject
-) {
-  const reactionSet = validReactions(reactions, actionsCore)
-
-  if (reactionSet.length === 0) {
-    actionsCore.setFailed(`No valid reactions are contained in '${reactions}'.`)
-    return false
-  }
-
-  const results = await Promise.allSettled(
-    reactionSet.map(async item => {
-      await octokit.rest.reactions.createForIssueComment({
-        owner: repo.owner,
-        repo: repo.repo,
-        comment_id: commentId,
-        content: item
-      })
-      actionsCore.info(`Setting '${item}' reaction on comment.`)
-    })
-  )
-
-  let hasFailure = false
-  for (let i = 0, l = results.length; i < l; i++) {
-    if (results[i].status === 'fulfilled') {
-      actionsCore.info(
-        `Added reaction '${reactionSet[i]}' to comment id '${commentId}'.`
-      )
-    } else if (results[i].status === 'rejected') {
-      hasFailure = true
-      actionsCore.error(
-        `Adding reaction '${reactionSet[i]}' to comment id '${commentId}' failed with ${results[i].reason}.`
-      )
+async function addReactions(octokit, repo, commentId, reactions, actionsCore = core_namespaceObject) {
+    const reactionSet = validReactions(reactions, actionsCore);
+    if (reactionSet.length === 0) {
+        actionsCore.setFailed(`No valid reactions are contained in '${reactions}'.`);
+        return false;
     }
-  }
-
-  if (hasFailure) {
-    actionsCore.setFailed('Failed to add one or more reactions.')
-    return false
-  }
-
-  return true
+    const results = await Promise.allSettled(reactionSet.map(async (item) => {
+        await octokit.rest.reactions.createForIssueComment({
+            owner: repo.owner,
+            repo: repo.repo,
+            comment_id: commentId,
+            content: item
+        });
+        actionsCore.info(`Setting '${item}' reaction on comment.`);
+    }));
+    let hasFailure = false;
+    for (let i = 0, l = results.length; i < l; i++) {
+        const result = results[i];
+        const reaction = reactionSet[i];
+        if (!result || !reaction) {
+            continue;
+        }
+        if (result.status === 'fulfilled') {
+            actionsCore.info(`Added reaction '${reaction}' to comment id '${commentId}'.`);
+        }
+        else {
+            hasFailure = true;
+            actionsCore.error(`Adding reaction '${reaction}' to comment id '${commentId}' failed with ${result.reason}.`);
+        }
+    }
+    if (hasFailure) {
+        actionsCore.setFailed('Failed to add one or more reactions.');
+        return false;
+    }
+    return true;
 }
-
 async function resolveBody(inputs) {
-  if (inputs.vars && !inputs.file) {
-    throw new Error("The 'file' input must be provided if 'vars' is used")
-  }
-
-  if (inputs.body && inputs.file) {
-    throw new Error("You can only use 'file' or 'body' inputs, not both")
-  }
-
-  if (inputs.file) {
-    return renderComment(inputs.file, inputs.vars)
-  }
-
-  if (inputs.body) {
-    return inputs.body
-  }
-
-  return null
+    if (inputs.vars && !inputs.file) {
+        throw new Error("The 'file' input must be provided if 'vars' is used");
+    }
+    if (inputs.body && inputs.file) {
+        throw new Error("You can only use 'file' or 'body' inputs, not both");
+    }
+    if (inputs.file) {
+        return renderComment(inputs.file, inputs.vars);
+    }
+    if (inputs.body) {
+        return inputs.body;
+    }
+    return null;
 }
-
 async function updateExistingComment(octokit, repo, inputs, body, actionsCore) {
-  if (!body && !inputs.reactions) {
-    actionsCore.setFailed("Missing either comment 'body' or 'reactions'")
-    return
-  }
-
-  if (body) {
-    let commentBody = ''
-    if (inputs.editMode === 'append') {
-      const {data: comment} = await octokit.rest.issues.getComment({
+    if (!body && !inputs.reactions) {
+        actionsCore.setFailed("Missing either comment 'body' or 'reactions'");
+        return;
+    }
+    if (body) {
+        let commentBody = '';
+        if (inputs.editMode === 'append') {
+            const { data: comment } = await octokit.rest.issues.getComment({
+                owner: repo.owner,
+                repo: repo.repo,
+                comment_id: inputs.commentId
+            });
+            commentBody = `${comment.body || ''}\n`;
+        }
+        commentBody = commentBody + body;
+        actionsCore.debug(`Comment body: ${commentBody}`);
+        await octokit.rest.issues.updateComment({
+            owner: repo.owner,
+            repo: repo.repo,
+            comment_id: inputs.commentId,
+            body: commentBody
+        });
+        actionsCore.info(`Updated comment id '${inputs.commentId}'`);
+        actionsCore.setOutput('comment-id', inputs.commentId);
+    }
+    if (inputs.reactions) {
+        await addReactions(octokit, repo, inputs.commentId, inputs.reactions, actionsCore);
+    }
+}
+async function createComment(octokit, repo, inputs, body, actionsCore) {
+    if (!body) {
+        actionsCore.setFailed("The 'body' or 'file' input is required");
+        return;
+    }
+    const { data: comment } = await octokit.rest.issues.createComment({
         owner: repo.owner,
         repo: repo.repo,
-        comment_id: inputs.commentId
-      })
-      commentBody = `${comment.body}\n`
+        issue_number: inputs.issueNumber,
+        body
+    });
+    actionsCore.info(`Created comment id '${comment.id}' on issue '${inputs.issueNumber}'`);
+    actionsCore.setOutput('comment-id', comment.id);
+    if (inputs.reactions) {
+        await addReactions(octokit, repo, comment.id, inputs.reactions, actionsCore);
     }
-
-    commentBody = commentBody + body
-    actionsCore.debug(`Comment body: ${commentBody}`)
-
-    await octokit.rest.issues.updateComment({
-      owner: repo.owner,
-      repo: repo.repo,
-      comment_id: inputs.commentId,
-      body: commentBody
-    })
-    actionsCore.info(`Updated comment id '${inputs.commentId}'`)
-    actionsCore.setOutput('comment-id', inputs.commentId)
-  }
-
-  if (inputs.reactions) {
-    await addReactions(
-      octokit,
-      repo,
-      inputs.commentId,
-      inputs.reactions,
-      actionsCore
-    )
-  }
 }
-
-async function createComment(octokit, repo, inputs, body, actionsCore) {
-  if (!body) {
-    actionsCore.setFailed("The 'body' or 'file' input is required")
-    return
-  }
-
-  const {data: comment} = await octokit.rest.issues.createComment({
-    owner: repo.owner,
-    repo: repo.repo,
-    issue_number: inputs.issueNumber,
-    body
-  })
-  actionsCore.info(
-    `Created comment id '${comment.id}' on issue '${inputs.issueNumber}'`
-  )
-  actionsCore.setOutput('comment-id', comment.id)
-
-  if (inputs.reactions) {
-    await addReactions(octokit, repo, comment.id, inputs.reactions, actionsCore)
-  }
+function getErrorMessage(error) {
+    return error instanceof Error ? error.message : String(error);
 }
-
-async function run({
-  actionsCore = core_namespaceObject,
-  githubClient = github_namespaceObject,
-  env = process.env
-} = {}) {
-  try {
-    const inputs = getInputs(actionsCore)
-    const issueNumberFallback = resolveIssueNumber(
-      inputs.issueNumber,
-      githubClient.context
-    )
-    actionsCore.debug(`issueNumberFallback: ${issueNumberFallback}`)
-
-    if (!inputs.issueNumber) {
-      actionsCore.debug(
-        `issueNumber is not set, trying to set from the issueNumberFallback: ${issueNumberFallback}`
-      )
-      inputs.issueNumber = issueNumberFallback
+async function run({ actionsCore = core_namespaceObject, githubClient = github_namespaceObject, env = process.env } = {}) {
+    try {
+        const inputs = getInputs(actionsCore);
+        const issueNumberFallback = resolveIssueNumber(inputs.issueNumber, githubClient.context);
+        actionsCore.debug(`issueNumberFallback: ${issueNumberFallback}`);
+        if (!inputs.issueNumber) {
+            actionsCore.debug(`issueNumber is not set, trying to set from the issueNumberFallback: ${issueNumberFallback}`);
+            inputs.issueNumber = issueNumberFallback;
+        }
+        actionsCore.debug(`Inputs: ${(0,external_node_util_.inspect)(sanitizeInputs(inputs))}`);
+        const repo = resolveRepository(inputs.repository, env);
+        actionsCore.debug(`repository: ${repo.repository}`);
+        inputs.editMode = inputs.editMode || 'append';
+        actionsCore.debug(`editMode: ${inputs.editMode}`);
+        if (!['append', 'replace'].includes(inputs.editMode)) {
+            actionsCore.setFailed(`Invalid edit-mode '${inputs.editMode}'`);
+            return;
+        }
+        const body = await resolveBody(inputs);
+        if (!inputs.commentId && !inputs.issueNumber) {
+            actionsCore.setFailed("Missing either 'issue-number' or 'comment-id'");
+            return;
+        }
+        const octokit = githubClient.getOctokit(inputs.token);
+        if (inputs.commentId) {
+            await updateExistingComment(octokit, repo, inputs, body, actionsCore);
+        }
+        else {
+            await createComment(octokit, repo, inputs, body, actionsCore);
+        }
     }
-
-    actionsCore.debug(`Inputs: ${(0,external_node_util_.inspect)(sanitizeInputs(inputs))}`)
-
-    const repo = resolveRepository(inputs.repository, env)
-    actionsCore.debug(`repository: ${repo.repository}`)
-
-    inputs.editMode = inputs.editMode || 'append'
-    actionsCore.debug(`editMode: ${inputs.editMode}`)
-    if (!['append', 'replace'].includes(inputs.editMode)) {
-      actionsCore.setFailed(`Invalid edit-mode '${inputs.editMode}'`)
-      return
+    catch (error) {
+        const message = getErrorMessage(error);
+        actionsCore.debug((0,external_node_util_.inspect)(error));
+        actionsCore.setFailed(message);
+        if (message === 'Resource not accessible by integration') {
+            actionsCore.error(`See this action's readme for details about this error`);
+        }
     }
-
-    const body = await resolveBody(inputs)
-    if (!inputs.commentId && !inputs.issueNumber) {
-      actionsCore.setFailed("Missing either 'issue-number' or 'comment-id'")
-      return
-    }
-
-    const octokit = githubClient.getOctokit(inputs.token)
-
-    if (inputs.commentId) {
-      await updateExistingComment(octokit, repo, inputs, body, actionsCore)
-    } else {
-      await createComment(octokit, repo, inputs, body, actionsCore)
-    }
-  } catch (error) {
-    actionsCore.debug((0,external_node_util_.inspect)(error))
-    actionsCore.setFailed(error.message)
-    if (error.message === 'Resource not accessible by integration') {
-      actionsCore.error(`See this action's readme for details about this error`)
-    }
-  }
 }
 
 
 
-;// CONCATENATED MODULE: ./src/main.js
+/***/ }),
+
+/***/ 1730:
+/***/ ((module, __unused_webpack___webpack_exports__, __nccwpck_require__) => {
+
+__nccwpck_require__.a(module, async (__webpack_handle_async_dependencies__, __webpack_async_result__) => { try {
+/* harmony import */ var _comment_js__WEBPACK_IMPORTED_MODULE_0__ = __nccwpck_require__(2860);
+
+await (0,_comment_js__WEBPACK_IMPORTED_MODULE_0__/* .run */ .eF)();
+
+__webpack_async_result__();
+} catch(e) { __webpack_async_result__(e); } }, 1);
+
+/***/ }),
+
+/***/ 568:
+/***/ ((module) => {
+
+module.exports = eval("require")("chokidar");
 
 
-run()
+/***/ }),
 
+/***/ 2613:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("assert");
+
+/***/ }),
+
+/***/ 3167:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("domain");
+
+/***/ }),
+
+/***/ 4434:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("events");
+
+/***/ }),
+
+/***/ 9896:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("fs");
+
+/***/ }),
+
+/***/ 8611:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("http");
+
+/***/ }),
+
+/***/ 5692:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("https");
+
+/***/ }),
+
+/***/ 9278:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("net");
+
+/***/ }),
+
+/***/ 4589:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:assert");
+
+/***/ }),
+
+/***/ 6698:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:async_hooks");
+
+/***/ }),
+
+/***/ 4573:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:buffer");
+
+/***/ }),
+
+/***/ 7540:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:console");
+
+/***/ }),
+
+/***/ 7598:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:crypto");
+
+/***/ }),
+
+/***/ 3053:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:diagnostics_channel");
+
+/***/ }),
+
+/***/ 610:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:dns");
+
+/***/ }),
+
+/***/ 8474:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:events");
+
+/***/ }),
+
+/***/ 7067:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:http");
+
+/***/ }),
+
+/***/ 2467:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:http2");
+
+/***/ }),
+
+/***/ 7030:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:net");
+
+/***/ }),
+
+/***/ 643:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:perf_hooks");
+
+/***/ }),
+
+/***/ 1792:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:querystring");
+
+/***/ }),
+
+/***/ 7075:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:stream");
+
+/***/ }),
+
+/***/ 1692:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:tls");
+
+/***/ }),
+
+/***/ 3136:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:url");
+
+/***/ }),
+
+/***/ 7975:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:util");
+
+/***/ }),
+
+/***/ 3429:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:util/types");
+
+/***/ }),
+
+/***/ 5919:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:worker_threads");
+
+/***/ }),
+
+/***/ 8522:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:zlib");
+
+/***/ }),
+
+/***/ 6928:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("path");
+
+/***/ }),
+
+/***/ 3193:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("string_decoder");
+
+/***/ }),
+
+/***/ 4756:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("tls");
+
+/***/ }),
+
+/***/ 9023:
+/***/ ((module) => {
+
+module.exports = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("util");
+
+/***/ }),
+
+/***/ 1120:
+/***/ ((module) => {
+
+var __webpack_unused_export__;
+
+
+const NullObject = function NullObject () { }
+NullObject.prototype = Object.create(null)
+
+/**
+ * RegExp to match *( ";" parameter ) in RFC 7231 sec 3.1.1.1
+ *
+ * parameter     = token "=" ( token / quoted-string )
+ * token         = 1*tchar
+ * tchar         = "!" / "#" / "$" / "%" / "&" / "'" / "*"
+ *               / "+" / "-" / "." / "^" / "_" / "`" / "|" / "~"
+ *               / DIGIT / ALPHA
+ *               ; any VCHAR, except delimiters
+ * quoted-string = DQUOTE *( qdtext / quoted-pair ) DQUOTE
+ * qdtext        = HTAB / SP / %x21 / %x23-5B / %x5D-7E / obs-text
+ * obs-text      = %x80-FF
+ * quoted-pair   = "\" ( HTAB / SP / VCHAR / obs-text )
+ */
+const paramRE = /; *([!#$%&'*+.^\w`|~-]+)=("(?:[\v\u0020\u0021\u0023-\u005b\u005d-\u007e\u0080-\u00ff]|\\[\v\u0020-\u00ff])*"|[!#$%&'*+.^\w`|~-]+) */gu
+
+/**
+ * RegExp to match quoted-pair in RFC 7230 sec 3.2.6
+ *
+ * quoted-pair = "\" ( HTAB / SP / VCHAR / obs-text )
+ * obs-text    = %x80-FF
+ */
+const quotedPairRE = /\\([\v\u0020-\u00ff])/gu
+
+/**
+ * RegExp to match type in RFC 7231 sec 3.1.1.1
+ *
+ * media-type = type "/" subtype
+ * type       = token
+ * subtype    = token
+ */
+const mediaTypeRE = /^[!#$%&'*+.^\w|~-]+\/[!#$%&'*+.^\w|~-]+$/u
+
+// default ContentType to prevent repeated object creation
+const defaultContentType = { type: '', parameters: new NullObject() }
+Object.freeze(defaultContentType.parameters)
+Object.freeze(defaultContentType)
+
+/**
+ * Parse media type to object.
+ *
+ * @param {string|object} header
+ * @return {Object}
+ * @public
+ */
+
+function parse (header) {
+  if (typeof header !== 'string') {
+    throw new TypeError('argument header is required and must be a string')
+  }
+
+  let index = header.indexOf(';')
+  const type = index !== -1
+    ? header.slice(0, index).trim()
+    : header.trim()
+
+  if (mediaTypeRE.test(type) === false) {
+    throw new TypeError('invalid media type')
+  }
+
+  const result = {
+    type: type.toLowerCase(),
+    parameters: new NullObject()
+  }
+
+  // parse parameters
+  if (index === -1) {
+    return result
+  }
+
+  let key
+  let match
+  let value
+
+  paramRE.lastIndex = index
+
+  while ((match = paramRE.exec(header))) {
+    if (match.index !== index) {
+      throw new TypeError('invalid parameter format')
+    }
+
+    index += match[0].length
+    key = match[1].toLowerCase()
+    value = match[2]
+
+    if (value[0] === '"') {
+      // remove quotes and escapes
+      value = value
+        .slice(1, value.length - 1)
+
+      quotedPairRE.test(value) && (value = value.replace(quotedPairRE, '$1'))
+    }
+
+    result.parameters[key] = value
+  }
+
+  if (index !== header.length) {
+    throw new TypeError('invalid parameter format')
+  }
+
+  return result
+}
+
+function safeParse (header) {
+  if (typeof header !== 'string') {
+    return defaultContentType
+  }
+
+  let index = header.indexOf(';')
+  const type = index !== -1
+    ? header.slice(0, index).trim()
+    : header.trim()
+
+  if (mediaTypeRE.test(type) === false) {
+    return defaultContentType
+  }
+
+  const result = {
+    type: type.toLowerCase(),
+    parameters: new NullObject()
+  }
+
+  // parse parameters
+  if (index === -1) {
+    return result
+  }
+
+  let key
+  let match
+  let value
+
+  paramRE.lastIndex = index
+
+  while ((match = paramRE.exec(header))) {
+    if (match.index !== index) {
+      return defaultContentType
+    }
+
+    index += match[0].length
+    key = match[1].toLowerCase()
+    value = match[2]
+
+    if (value[0] === '"') {
+      // remove quotes and escapes
+      value = value
+        .slice(1, value.length - 1)
+
+      quotedPairRE.test(value) && (value = value.replace(quotedPairRE, '$1'))
+    }
+
+    result.parameters[key] = value
+  }
+
+  if (index !== header.length) {
+    return defaultContentType
+  }
+
+  return result
+}
+
+__webpack_unused_export__ = { parse, safeParse }
+__webpack_unused_export__ = parse
+module.exports.xL = safeParse
+__webpack_unused_export__ = defaultContentType
+
+
+/***/ })
+
+/******/ });
+/************************************************************************/
+/******/ // The module cache
+/******/ var __webpack_module_cache__ = {};
+/******/ 
+/******/ // The require function
+/******/ function __nccwpck_require__(moduleId) {
+/******/ 	// Check if module is in cache
+/******/ 	var cachedModule = __webpack_module_cache__[moduleId];
+/******/ 	if (cachedModule !== undefined) {
+/******/ 		return cachedModule.exports;
+/******/ 	}
+/******/ 	// Create a new module (and put it into the cache)
+/******/ 	var module = __webpack_module_cache__[moduleId] = {
+/******/ 		// no module.id needed
+/******/ 		// no module.loaded needed
+/******/ 		exports: {}
+/******/ 	};
+/******/ 
+/******/ 	// Execute the module function
+/******/ 	var threw = true;
+/******/ 	try {
+/******/ 		__webpack_modules__[moduleId].call(module.exports, module, module.exports, __nccwpck_require__);
+/******/ 		threw = false;
+/******/ 	} finally {
+/******/ 		if(threw) delete __webpack_module_cache__[moduleId];
+/******/ 	}
+/******/ 
+/******/ 	// Return the exports of the module
+/******/ 	return module.exports;
+/******/ }
+/******/ 
+/************************************************************************/
+/******/ /* webpack/runtime/async module */
+/******/ (() => {
+/******/ 	var webpackQueues = typeof Symbol === "function" ? Symbol("webpack queues") : "__webpack_queues__";
+/******/ 	var webpackExports = typeof Symbol === "function" ? Symbol("webpack exports") : "__webpack_exports__";
+/******/ 	var webpackError = typeof Symbol === "function" ? Symbol("webpack error") : "__webpack_error__";
+/******/ 	var resolveQueue = (queue) => {
+/******/ 		if(queue && queue.d < 1) {
+/******/ 			queue.d = 1;
+/******/ 			queue.forEach((fn) => (fn.r--));
+/******/ 			queue.forEach((fn) => (fn.r-- ? fn.r++ : fn()));
+/******/ 		}
+/******/ 	}
+/******/ 	var wrapDeps = (deps) => (deps.map((dep) => {
+/******/ 		if(dep !== null && typeof dep === "object") {
+/******/ 			if(dep[webpackQueues]) return dep;
+/******/ 			if(dep.then) {
+/******/ 				var queue = [];
+/******/ 				queue.d = 0;
+/******/ 				dep.then((r) => {
+/******/ 					obj[webpackExports] = r;
+/******/ 					resolveQueue(queue);
+/******/ 				}, (e) => {
+/******/ 					obj[webpackError] = e;
+/******/ 					resolveQueue(queue);
+/******/ 				});
+/******/ 				var obj = {};
+/******/ 				obj[webpackQueues] = (fn) => (fn(queue));
+/******/ 				return obj;
+/******/ 			}
+/******/ 		}
+/******/ 		var ret = {};
+/******/ 		ret[webpackQueues] = x => {};
+/******/ 		ret[webpackExports] = dep;
+/******/ 		return ret;
+/******/ 	}));
+/******/ 	__nccwpck_require__.a = (module, body, hasAwait) => {
+/******/ 		var queue;
+/******/ 		hasAwait && ((queue = []).d = -1);
+/******/ 		var depQueues = new Set();
+/******/ 		var exports = module.exports;
+/******/ 		var currentDeps;
+/******/ 		var outerResolve;
+/******/ 		var reject;
+/******/ 		var promise = new Promise((resolve, rej) => {
+/******/ 			reject = rej;
+/******/ 			outerResolve = resolve;
+/******/ 		});
+/******/ 		promise[webpackExports] = exports;
+/******/ 		promise[webpackQueues] = (fn) => (queue && fn(queue), depQueues.forEach(fn), promise["catch"](x => {}));
+/******/ 		module.exports = promise;
+/******/ 		body((deps) => {
+/******/ 			currentDeps = wrapDeps(deps);
+/******/ 			var fn;
+/******/ 			var getResult = () => (currentDeps.map((d) => {
+/******/ 				if(d[webpackError]) throw d[webpackError];
+/******/ 				return d[webpackExports];
+/******/ 			}))
+/******/ 			var promise = new Promise((resolve) => {
+/******/ 				fn = () => (resolve(getResult));
+/******/ 				fn.r = 0;
+/******/ 				var fnQueue = (q) => (q !== queue && !depQueues.has(q) && (depQueues.add(q), q && !q.d && (fn.r++, q.push(fn))));
+/******/ 				currentDeps.map((dep) => (dep[webpackQueues](fnQueue)));
+/******/ 			});
+/******/ 			return fn.r ? promise : getResult();
+/******/ 		}, (err) => ((err ? reject(promise[webpackError] = err) : outerResolve(exports)), resolveQueue(queue)));
+/******/ 		queue && queue.d < 0 && (queue.d = 0);
+/******/ 	};
+/******/ })();
+/******/ 
+/******/ /* webpack/runtime/compat get default export */
+/******/ (() => {
+/******/ 	// getDefaultExport function for compatibility with non-harmony modules
+/******/ 	__nccwpck_require__.n = (module) => {
+/******/ 		var getter = module && module.__esModule ?
+/******/ 			() => (module['default']) :
+/******/ 			() => (module);
+/******/ 		__nccwpck_require__.d(getter, { a: getter });
+/******/ 		return getter;
+/******/ 	};
+/******/ })();
+/******/ 
+/******/ /* webpack/runtime/create fake namespace object */
+/******/ (() => {
+/******/ 	var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
+/******/ 	var leafPrototypes;
+/******/ 	// create a fake namespace object
+/******/ 	// mode & 1: value is a module id, require it
+/******/ 	// mode & 2: merge all properties of value into the ns
+/******/ 	// mode & 4: return value when already ns object
+/******/ 	// mode & 16: return value when it's Promise-like
+/******/ 	// mode & 8|1: behave like require
+/******/ 	__nccwpck_require__.t = function(value, mode) {
+/******/ 		if(mode & 1) value = this(value);
+/******/ 		if(mode & 8) return value;
+/******/ 		if(typeof value === 'object' && value) {
+/******/ 			if((mode & 4) && value.__esModule) return value;
+/******/ 			if((mode & 16) && typeof value.then === 'function') return value;
+/******/ 		}
+/******/ 		var ns = Object.create(null);
+/******/ 		__nccwpck_require__.r(ns);
+/******/ 		var def = {};
+/******/ 		leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];
+/******/ 		for(var current = mode & 2 && value; typeof current == 'object' && !~leafPrototypes.indexOf(current); current = getProto(current)) {
+/******/ 			Object.getOwnPropertyNames(current).forEach((key) => (def[key] = () => (value[key])));
+/******/ 		}
+/******/ 		def['default'] = () => (value);
+/******/ 		__nccwpck_require__.d(ns, def);
+/******/ 		return ns;
+/******/ 	};
+/******/ })();
+/******/ 
+/******/ /* webpack/runtime/define property getters */
+/******/ (() => {
+/******/ 	// define getter functions for harmony exports
+/******/ 	__nccwpck_require__.d = (exports, definition) => {
+/******/ 		for(var key in definition) {
+/******/ 			if(__nccwpck_require__.o(definition, key) && !__nccwpck_require__.o(exports, key)) {
+/******/ 				Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 			}
+/******/ 		}
+/******/ 	};
+/******/ })();
+/******/ 
+/******/ /* webpack/runtime/hasOwnProperty shorthand */
+/******/ (() => {
+/******/ 	__nccwpck_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ })();
+/******/ 
+/******/ /* webpack/runtime/make namespace object */
+/******/ (() => {
+/******/ 	// define __esModule on exports
+/******/ 	__nccwpck_require__.r = (exports) => {
+/******/ 		if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 			Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 		}
+/******/ 		Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 	};
+/******/ })();
+/******/ 
+/******/ /* webpack/runtime/compat */
+/******/ 
+/******/ if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = new URL('.', import.meta.url).pathname.slice(import.meta.url.match(/^file:\/\/\/\w:/) ? 1 : 0, -1) + "/";
+/******/ 
+/************************************************************************/
+/******/ 
+/******/ // startup
+/******/ // Load entry module and return exports
+/******/ // This entry module used 'module' so it can't be inlined
+/******/ var __webpack_exports__ = __nccwpck_require__(1730);
+/******/ __webpack_exports__ = await __webpack_exports__;
+/******/ 
 
 //# sourceMappingURL=index.js.map

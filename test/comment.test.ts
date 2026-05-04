@@ -15,9 +15,32 @@ import {
   sanitizeInputs,
   validReactions
 } from '../src/comment.js'
+import type {
+  ActionsCore,
+  CreateCommentOptions,
+  GetCommentOptions,
+  GithubClient,
+  GithubContext,
+  OctokitClient,
+  ReactionOptions,
+  Repository,
+  UpdateCommentOptions
+} from '../src/comment.js'
 
-function makeCore(inputs = {}) {
-  const calls = {
+interface CoreCalls {
+  debug: string[]
+  error: string[]
+  failed: string[]
+  info: string[]
+  outputs: Record<string, number | string>
+}
+
+interface TestCore extends ActionsCore {
+  calls: CoreCalls
+}
+
+function makeCore(inputs: Record<string, string> = {}): TestCore {
+  const calls: CoreCalls = {
     debug: [],
     error: [],
     failed: [],
@@ -27,33 +50,50 @@ function makeCore(inputs = {}) {
 
   return {
     calls,
-    debug(message) {
+    debug(message: string) {
       calls.debug.push(String(message))
     },
-    error(message) {
+    error(message: string) {
       calls.error.push(String(message))
     },
-    getInput(name) {
+    getInput(name: string) {
       return inputs[name] || ''
     },
-    info(message) {
+    info(message: string) {
       calls.info.push(String(message))
     },
-    setFailed(message) {
+    setFailed(message: string) {
       calls.failed.push(String(message))
     },
-    setOutput(name, value) {
+    setOutput(name: string, value: number | string) {
       calls.outputs[name] = value
     }
   }
+}
+
+interface OctokitCalls {
+  createComment: CreateCommentOptions[]
+  getComment: GetCommentOptions[]
+  reactions: ReactionOptions[]
+  updateComment: UpdateCommentOptions[]
+}
+
+interface TestOctokit extends OctokitClient {
+  calls: OctokitCalls
+}
+
+interface MakeOctokitOptions {
+  createId?: number
+  existingBody?: string
+  failReaction?: string
 }
 
 function makeOctokit({
   createId = 101,
   existingBody = 'existing comment',
   failReaction
-} = {}) {
-  const calls = {
+}: MakeOctokitOptions = {}): TestOctokit {
+  const calls: OctokitCalls = {
     createComment: [],
     getComment: [],
     reactions: [],
@@ -64,21 +104,21 @@ function makeOctokit({
     calls,
     rest: {
       issues: {
-        async createComment(options) {
+        async createComment(options: CreateCommentOptions) {
           calls.createComment.push(options)
           return {data: {id: createId}}
         },
-        async getComment(options) {
+        async getComment(options: GetCommentOptions) {
           calls.getComment.push(options)
           return {data: {body: existingBody}}
         },
-        async updateComment(options) {
+        async updateComment(options: UpdateCommentOptions) {
           calls.updateComment.push(options)
           return {data: {id: options.comment_id}}
         }
       },
       reactions: {
-        async createForIssueComment(options) {
+        async createForIssueComment(options: ReactionOptions) {
           calls.reactions.push(options)
           if (options.content === failReaction) {
             throw new Error(`failed ${options.content}`)
@@ -90,29 +130,41 @@ function makeOctokit({
   }
 }
 
-function makeGithubClient(octokit, context = {payload: {}}) {
+interface TestGithubClient extends GithubClient {
+  calls: {
+    getOctokit: string[]
+  }
+}
+
+function makeGithubClient(
+  octokit: OctokitClient,
+  context: GithubContext = {payload: {}}
+): TestGithubClient {
   const calls = {
-    getOctokit: []
+    getOctokit: [] as string[]
   }
 
   return {
     calls,
     context,
-    getOctokit(token) {
+    getOctokit(token: string) {
       calls.getOctokit.push(token)
       return octokit
     }
   }
 }
 
-function writeTemplate(contents) {
+function writeTemplate(contents: string): string {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'comment-action-'))
   const file = path.join(directory, 'template.md')
   fs.writeFileSync(file, contents)
   return file
 }
 
-function writeTemplates(files) {
+function writeTemplates(files: Record<string, string>): {
+  directory: string
+  file: string
+} {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'comment-action-'))
   for (const [name, contents] of Object.entries(files)) {
     fs.writeFileSync(path.join(directory, name), contents)
@@ -274,13 +326,30 @@ test('resolveRepository requires an owner/repo repository name', () => {
 })
 
 test('sanitizeInputs masks the token before debug logging', () => {
-  assert.deepEqual(sanitizeInputs({token: 'secret', body: 'hello'}), {
-    token: '[secure]',
-    body: 'hello'
-  })
-  assert.deepEqual(sanitizeInputs({token: '', body: 'hello'}), {
+  assert.deepEqual(
+    sanitizeInputs({...getInputs(makeCore()), token: 'secret'}),
+    {
+      token: '[secure]',
+      repository: '',
+      issueNumber: '',
+      commentId: '',
+      body: '',
+      editMode: '',
+      vars: '',
+      file: '',
+      reactions: ''
+    }
+  )
+  assert.deepEqual(sanitizeInputs({...getInputs(makeCore()), body: 'hello'}), {
     token: '',
-    body: 'hello'
+    repository: '',
+    issueNumber: '',
+    commentId: '',
+    body: 'hello',
+    editMode: '',
+    vars: '',
+    file: '',
+    reactions: ''
   })
 })
 
@@ -301,7 +370,7 @@ test('addReactions adds valid reactions and skips invalid entries', async () => 
   assert.equal(
     await addReactions(
       octokit,
-      {owner: 'owner', repo: 'repo'},
+      {owner: 'owner', repo: 'repo', repository: 'owner/repo'},
       123,
       'eyes, rocket, nope, eyes',
       core
@@ -318,17 +387,13 @@ test('addReactions adds valid reactions and skips invalid entries', async () => 
 test('addReactions fails when no valid reactions are provided', async () => {
   const core = makeCore()
   const octokit = makeOctokit()
+  const repo: Repository = {
+    owner: 'owner',
+    repo: 'repo',
+    repository: 'owner/repo'
+  }
 
-  assert.equal(
-    await addReactions(
-      octokit,
-      {owner: 'owner', repo: 'repo'},
-      123,
-      'nope',
-      core
-    ),
-    false
-  )
+  assert.equal(await addReactions(octokit, repo, 123, 'nope', core), false)
   assert.equal(octokit.calls.reactions.length, 0)
   assert.deepEqual(core.calls.failed, [
     "No valid reactions are contained in 'nope'."
@@ -338,15 +403,14 @@ test('addReactions fails when no valid reactions are provided', async () => {
 test('addReactions fails when GitHub rejects a reaction', async () => {
   const core = makeCore()
   const octokit = makeOctokit({failReaction: 'rocket'})
+  const repo: Repository = {
+    owner: 'owner',
+    repo: 'repo',
+    repository: 'owner/repo'
+  }
 
   assert.equal(
-    await addReactions(
-      octokit,
-      {owner: 'owner', repo: 'repo'},
-      123,
-      'eyes,rocket',
-      core
-    ),
+    await addReactions(octokit, repo, 123, 'eyes,rocket', core),
     false
   )
   assert.equal(octokit.calls.reactions.length, 2)
@@ -643,7 +707,7 @@ test('run includes the readme hint for integration permission errors', async () 
     repository: 'owner/repo',
     token: 'token'
   })
-  const githubClient = {
+  const githubClient: GithubClient = {
     context: {payload: {}},
     getOctokit() {
       throw new Error('Resource not accessible by integration')

@@ -3,15 +3,16 @@
   "version": "0.0.0",
   "description": "GitHub Action to create, update, or add a reaction to any issue or pull request",
   "type": "module",
-  "main": "src/main.js",
+  "main": "src/main.ts",
   "scripts": {
-    "format": "prettier --write '**/*.js'",
-    "format-check": "prettier --check '**/*.js'",
+    "format": "prettier --write '**/*.{js,ts}'",
+    "format-check": "prettier --check '**/*.{js,ts}'",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint src test",
-    "package": "NODE_OPTIONS=--openssl-legacy-provider ncc build src/main.js -o dist --source-map --license licenses.txt",
-    "test": "node --test --experimental-test-coverage test/*.test.js",
+    "package": "NODE_OPTIONS=--openssl-legacy-provider ncc build src/main.ts -o dist --source-map --license licenses.txt",
+    "test": "node --import tsx --test --experimental-test-coverage test/*.test.ts",
     "ci-test": "npm test",
-    "all": "npm run format && npm run lint && npm test && npm run package",
+    "all": "npm run format && npm run typecheck && npm run lint && npm test && npm run package",
     "bundle": "npm run format && npm run package"
   },
   "repository": {
@@ -33,9 +34,15 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^25.6.0",
+    "@types/nunjucks": "^3.2.6",
     "@vercel/ncc": "^0.38.4",
     "eslint": "^10.3.0",
-    "prettier": "^3.8.3"
+    "prettier": "^3.8.3",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.2"
   },
   "overrides": {
     "undici": "6.25.0"

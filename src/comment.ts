@@ -15,19 +15,120 @@ const REACTION_TYPES = [
   'hooray',
   'rocket',
   'eyes'
-]
+] as const
+
+type ReactionType = (typeof REACTION_TYPES)[number]
+
+interface ActionsCore {
+  debug(message: string): void
+  error(message: string): void
+  getInput(name: string): string
+  info(message: string): void
+  setFailed(message: string): void
+  setOutput(name: string, value: number | string): void
+}
+
+interface ActionInputs {
+  token: string
+  repository: string
+  issueNumber: number | string
+  commentId: string
+  body: string
+  editMode: string
+  vars: string
+  file: string
+  reactions: string
+}
+
+interface GithubPayload {
+  issue?: {
+    number?: number | string
+  }
+  pull_request?: {
+    number?: number | string
+  }
+  number?: number | string
+}
+
+interface GithubContext {
+  payload?: GithubPayload
+}
+
+interface GithubClient {
+  context: GithubContext
+  getOctokit(token: string): OctokitClient
+}
+
+interface Repository {
+  repository: string
+  owner: string
+  repo: string
+}
+
+interface CreateCommentOptions {
+  owner: string
+  repo: string
+  issue_number: number | string
+  body: string
+}
+
+interface GetCommentOptions {
+  owner: string
+  repo: string
+  comment_id: number | string
+}
+
+interface UpdateCommentOptions {
+  owner: string
+  repo: string
+  comment_id: number | string
+  body: string
+}
+
+interface ReactionOptions {
+  owner: string
+  repo: string
+  comment_id: number | string
+  content: ReactionType
+}
+
+interface OctokitClient {
+  rest: {
+    issues: {
+      createComment(
+        options: CreateCommentOptions
+      ): Promise<{data: {id: number | string}}>
+      getComment(options: GetCommentOptions): Promise<{
+        data: {
+          body?: null | string
+        }
+      }>
+      updateComment(
+        options: UpdateCommentOptions
+      ): Promise<{data: {id: number | string}}>
+    }
+    reactions: {
+      createForIssueComment(options: ReactionOptions): Promise<unknown>
+    }
+  }
+}
+
+type Environment = NodeJS.ProcessEnv | Record<string, string | undefined>
 
 class SafeTemplateLoader extends nunjucks.Loader {
-  constructor(searchPath) {
+  private readonly searchPath: string
+  private readonly realSearchPath: null | string
+  private readonly noCache = true
+
+  constructor(searchPath: string) {
     super()
     this.searchPath = path.resolve(searchPath)
     this.realSearchPath = fs.existsSync(this.searchPath)
       ? fs.realpathSync(this.searchPath)
       : null
-    this.noCache = true
   }
 
-  getSource(name) {
+  getSource(name: string): null | nunjucks.LoaderSource {
     if (!this.realSearchPath) {
       return null
     }
@@ -63,7 +164,7 @@ class SafeTemplateLoader extends nunjucks.Loader {
   }
 }
 
-function getInputs(actionsCore = core) {
+function getInputs(actionsCore: ActionsCore = core): ActionInputs {
   const reactions =
     actionsCore.getInput('reactions') || actionsCore.getInput('reaction-type')
 
@@ -80,35 +181,41 @@ function getInputs(actionsCore = core) {
   }
 }
 
-function sanitizeInputs(inputs) {
+function sanitizeInputs(inputs: ActionInputs): ActionInputs {
   return {
     ...inputs,
     token: inputs.token ? '[secure]' : ''
   }
 }
 
-function resolveIssueNumber(issueNumber, githubContext) {
+function resolveIssueNumber(
+  issueNumber: number | string,
+  githubContext?: GithubContext | null
+): number | string {
   if (issueNumber) {
     return issueNumber
   }
 
-  const payload = githubContext && githubContext.payload
+  const payload = githubContext?.payload
   if (!payload) {
     return ''
   }
 
-  if (payload.issue && payload.issue.number) {
+  if (payload.issue?.number) {
     return payload.issue.number
   }
 
-  if (payload.pull_request && payload.pull_request.number) {
+  if (payload.pull_request?.number) {
     return payload.pull_request.number
   }
 
   return payload.number || ''
 }
 
-function resolveRepository(repositoryInput, env = process.env) {
+function resolveRepository(
+  repositoryInput: string,
+  env: Environment = process.env
+): Repository {
   const repository = repositoryInput || env.GITHUB_REPOSITORY
 
   if (!repository) {
@@ -131,7 +238,7 @@ function resolveRepository(repositoryInput, env = process.env) {
   }
 }
 
-function parseVars(vars) {
+function parseVars(vars: string): Record<string, unknown> {
   if (!vars) {
     return {}
   }
@@ -153,30 +260,37 @@ function parseVars(vars) {
     throw new Error("The 'vars' input must be a YAML mapping")
   }
 
-  return parsed
+  return parsed as Record<string, unknown>
 }
 
-async function renderComment(file, vars) {
+async function renderComment(file: string, vars: string): Promise<string> {
   const yamlVars = parseVars(vars)
   const resolvedFile = path.resolve(file)
   const templateDirectory = path.dirname(resolvedFile)
   const templateName = path.basename(resolvedFile)
   const environment = new nunjucks.Environment(
-    new SafeTemplateLoader(templateDirectory),
+    new SafeTemplateLoader(templateDirectory) as unknown as nunjucks.ILoader,
     {autoescape: true}
   )
   return environment.render(templateName, yamlVars)
 }
 
-function validReactions(reactions, actionsCore = core) {
+function isReactionType(reaction: string): reaction is ReactionType {
+  return (REACTION_TYPES as readonly string[]).includes(reaction)
+}
+
+function validReactions(
+  reactions: string,
+  actionsCore: ActionsCore = core
+): ReactionType[] {
   return [
     ...new Set(
       reactions
         .split(',')
         .map(item => item.trim())
         .filter(Boolean)
-        .filter(item => {
-          if (!REACTION_TYPES.includes(item)) {
+        .filter((item): item is ReactionType => {
+          if (!isReactionType(item)) {
             actionsCore.info(`Skipping invalid reaction '${item}'.`)
             return false
           }
@@ -187,12 +301,12 @@ function validReactions(reactions, actionsCore = core) {
 }
 
 async function addReactions(
-  octokit,
-  repo,
-  commentId,
-  reactions,
-  actionsCore = core
-) {
+  octokit: OctokitClient,
+  repo: Repository,
+  commentId: number | string,
+  reactions: string,
+  actionsCore: ActionsCore = core
+): Promise<boolean> {
   const reactionSet = validReactions(reactions, actionsCore)
 
   if (reactionSet.length === 0) {
@@ -214,14 +328,20 @@ async function addReactions(
 
   let hasFailure = false
   for (let i = 0, l = results.length; i < l; i++) {
-    if (results[i].status === 'fulfilled') {
+    const result = results[i]
+    const reaction = reactionSet[i]
+    if (!result || !reaction) {
+      continue
+    }
+
+    if (result.status === 'fulfilled') {
       actionsCore.info(
-        `Added reaction '${reactionSet[i]}' to comment id '${commentId}'.`
+        `Added reaction '${reaction}' to comment id '${commentId}'.`
       )
-    } else if (results[i].status === 'rejected') {
+    } else {
       hasFailure = true
       actionsCore.error(
-        `Adding reaction '${reactionSet[i]}' to comment id '${commentId}' failed with ${results[i].reason}.`
+        `Adding reaction '${reaction}' to comment id '${commentId}' failed with ${result.reason}.`
       )
     }
   }
@@ -234,7 +354,7 @@ async function addReactions(
   return true
 }
 
-async function resolveBody(inputs) {
+async function resolveBody(inputs: ActionInputs): Promise<null | string> {
   if (inputs.vars && !inputs.file) {
     throw new Error("The 'file' input must be provided if 'vars' is used")
   }
@@ -254,7 +374,13 @@ async function resolveBody(inputs) {
   return null
 }
 
-async function updateExistingComment(octokit, repo, inputs, body, actionsCore) {
+async function updateExistingComment(
+  octokit: OctokitClient,
+  repo: Repository,
+  inputs: ActionInputs,
+  body: null | string,
+  actionsCore: ActionsCore
+): Promise<void> {
   if (!body && !inputs.reactions) {
     actionsCore.setFailed("Missing either comment 'body' or 'reactions'")
     return
@@ -268,7 +394,7 @@ async function updateExistingComment(octokit, repo, inputs, body, actionsCore) {
         repo: repo.repo,
         comment_id: inputs.commentId
       })
-      commentBody = `${comment.body}\n`
+      commentBody = `${comment.body || ''}\n`
     }
 
     commentBody = commentBody + body
@@ -295,7 +421,13 @@ async function updateExistingComment(octokit, repo, inputs, body, actionsCore) {
   }
 }
 
-async function createComment(octokit, repo, inputs, body, actionsCore) {
+async function createComment(
+  octokit: OctokitClient,
+  repo: Repository,
+  inputs: ActionInputs,
+  body: null | string,
+  actionsCore: ActionsCore
+): Promise<void> {
   if (!body) {
     actionsCore.setFailed("The 'body' or 'file' input is required")
     return
@@ -317,11 +449,21 @@ async function createComment(octokit, repo, inputs, body, actionsCore) {
   }
 }
 
+interface RunOptions {
+  actionsCore?: ActionsCore
+  githubClient?: GithubClient
+  env?: Environment
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
 async function run({
   actionsCore = core,
-  githubClient = github,
+  githubClient = github as unknown as GithubClient,
   env = process.env
-} = {}) {
+}: RunOptions = {}): Promise<void> {
   try {
     const inputs = getInputs(actionsCore)
     const issueNumberFallback = resolveIssueNumber(
@@ -363,9 +505,10 @@ async function run({
       await createComment(octokit, repo, inputs, body, actionsCore)
     }
   } catch (error) {
+    const message = getErrorMessage(error)
     actionsCore.debug(inspect(error))
-    actionsCore.setFailed(error.message)
-    if (error.message === 'Resource not accessible by integration') {
+    actionsCore.setFailed(message)
+    if (message === 'Resource not accessible by integration') {
       actionsCore.error(`See this action's readme for details about this error`)
     }
   }
@@ -386,4 +529,18 @@ export {
   sanitizeInputs,
   updateExistingComment,
   validReactions
+}
+
+export type {
+  ActionInputs,
+  ActionsCore,
+  CreateCommentOptions,
+  GetCommentOptions,
+  GithubClient,
+  GithubContext,
+  OctokitClient,
+  ReactionOptions,
+  ReactionType,
+  Repository,
+  UpdateCommentOptions
 }

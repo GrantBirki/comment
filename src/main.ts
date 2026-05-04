@@ -1,3 +1,3 @@
 import {run} from './comment.js'
 
-run()
+await run()
