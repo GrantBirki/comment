@@ -8,7 +8,7 @@
     "format-check": "prettier --check '**/*.js'",
     "lint": "eslint src test",
     "package": "NODE_OPTIONS=--openssl-legacy-provider ncc build src/main.js -o dist --source-map --license licenses.txt",
-    "test": "node --test --experimental-test-coverage test",
+    "test": "node --test --experimental-test-coverage test/*.test.js",
     "ci-test": "npm test",
     "all": "npm run format && npm run lint && npm test && npm run package",
     "bundle": "npm run format && npm run package"
