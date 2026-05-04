@@ -33,14 +33,14 @@ jobs:
         run: |
           actual_body="$(gh api "repos/${GH_REPO}/issues/comments/${COMMENT_ID}" --jq .body)"
           expected_body="$(cat <<'EOF'
-# Acceptance Test
+          # Acceptance Test
 
-This comment is from the acceptance test. If you are seeing this, it means the acceptance test has passed! 🎉
+          This comment is from the acceptance test. If you are seeing this, it means the acceptance test has passed! 🎉
 
-**cool-app** has been successfully deployed to **production**
+          **cool-app** has been successfully deployed to **production**
 
-- SHA: `${{ github.sha }}`
-EOF
+          - SHA: `${{ github.sha }}`
+          EOF
           )"
 
           if [ "${actual_body}" != "${expected_body}" ]; then
@@ -75,16 +75,16 @@ EOF
         run: |
           actual_body="$(gh api "repos/${GH_REPO}/issues/comments/${COMMENT_ID}" --jq .body)"
           expected_body="$(cat <<'EOF'
-# Acceptance Test
+          # Acceptance Test
 
-This comment is from the acceptance test. If you are seeing this, it means the acceptance test has passed! 🎉
+          This comment is from the acceptance test. If you are seeing this, it means the acceptance test has passed! 🎉
 
-**cool-app** has been successfully deployed to **production**
+          **cool-app** has been successfully deployed to **production**
 
-- SHA: `${{ github.sha }}`
+          - SHA: `${{ github.sha }}`
 
-Acceptance append check for run ${{ github.run_id }}.
-EOF
+          Acceptance append check for run ${{ github.run_id }}.
+          EOF
           )"
 
           if [ "${actual_body}" != "${expected_body}" ]; then
@@ -113,14 +113,14 @@ EOF
         run: |
           actual_body="$(gh api "repos/${GH_REPO}/issues/comments/${COMMENT_ID}" --jq .body)"
           expected_body="$(cat <<'EOF'
-# Acceptance Test
+          # Acceptance Test
 
-This comment is from the acceptance test. If you are seeing this, it means the acceptance test has passed! 🎉
+          This comment is from the acceptance test. If you are seeing this, it means the acceptance test has passed! 🎉
 
-**cool-app** has been successfully deployed to **production**
+          **cool-app** has been successfully deployed to **production**
 
-- SHA: `${{ github.sha }}`
-EOF
+          - SHA: `${{ github.sha }}`
+          EOF
           )"
 
           if [ "${actual_body}" != "${expected_body}" ]; then
