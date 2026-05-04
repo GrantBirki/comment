@@ -2,6 +2,7 @@
   "name": "comment",
   "version": "0.0.0",
   "description": "GitHub Action to create, update, or add a reaction to any issue or pull request",
+  "type": "module",
   "main": "src/main.js",
   "scripts": {
     "format": "prettier --write '**/*.js'",
@@ -25,17 +26,18 @@
   },
   "homepage": "https://github.com/GrantBirki/comment",
   "dependencies": {
-    "@actions/core": "^2.0.3",
-    "@actions/github": "^8.0.1",
+    "@actions/core": "^3.0.1",
+    "@actions/github": "^9.1.1",
     "js-yaml": "^4.1.1",
     "nunjucks": "^3.2.4"
   },
   "devDependencies": {
-    "@vercel/ncc": "^0.38.1",
-    "eslint": "^8.57.0",
-    "prettier": "^3.3.3"
+    "@eslint/js": "^10.0.1",
+    "@vercel/ncc": "^0.38.4",
+    "eslint": "^10.3.0",
+    "prettier": "^3.8.3"
   },
   "overrides": {
-    "undici": "6.24.1"
+    "undici": "6.25.0"
   }
 }

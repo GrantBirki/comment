@@ -1,3 +1,3 @@
-const {run} = require('./comment')
+import {run} from './comment.js'
 
 run()
