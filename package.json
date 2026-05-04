@@ -6,11 +6,11 @@
   "scripts": {
     "format": "prettier --write '**/*.js'",
     "format-check": "prettier --check '**/*.js'",
-    "lint": "eslint src/**/*.js",
+    "lint": "eslint src test",
     "package": "NODE_OPTIONS=--openssl-legacy-provider ncc build src/main.js -o dist --source-map --license licenses.txt",
-    "test": "echo no tests",
-    "ci-test": "echo no tests",
-    "all": "npm run format && npm run lint && npm run package",
+    "test": "node --test --experimental-test-coverage test",
+    "ci-test": "npm test",
+    "all": "npm run format && npm run lint && npm test && npm run package",
     "bundle": "npm run format && npm run package"
   },
   "repository": {
@@ -27,44 +27,15 @@
   "dependencies": {
     "@actions/core": "^2.0.3",
     "@actions/github": "^8.0.1",
-    "dedent-js": "^1.0.1",
+    "js-yaml": "^4.1.1",
     "nunjucks": "^3.2.4"
   },
-  "jest": {
-    "coverageReporters": [
-      "json-summary",
-      "text",
-      "lcov"
-    ],
-    "collectCoverage": true,
-    "collectCoverageFrom": [
-      "./src/**"
-    ],
-    "coverageThreshold": {
-      "global": {
-        "lines": 100
-      }
-    }
-  },
   "devDependencies": {
-    "@babel/plugin-transform-modules-commonjs": "^7.24.1",
-    "@types/node": "^20.12.4",
     "@vercel/ncc": "^0.38.1",
     "eslint": "^8.57.0",
-    "js-yaml": "^4.1.1",
-    "prettier": "^3.3.3",
-    "@babel/core": "^7.24.4",
-    "babel-jest": "^29.7.0"
+    "prettier": "^3.3.3"
   },
   "overrides": {
-    "@istanbuljs/load-nyc-config": {
-      "js-yaml": "3.14.2"
-    },
-    "ajv": "6.14.0",
-    "brace-expansion": "1.1.13",
-    "flatted": "3.4.2",
-    "minimatch": "3.1.5",
-    "picomatch": "2.3.2",
     "undici": "6.24.1"
   }
 }

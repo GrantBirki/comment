@@ -5,20 +5,126 @@ on:
 
 permissions:
   contents: read
+  issues: write
   pull-requests: write
 
 jobs:
   acceptance:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # pin@v4
 
-      # if on pull request
-      - uses: ./
-        if: github.event_name == 'pull_request'
+      - name: create rendered acceptance comment
+        id: create-comment
+        uses: ./
         with:
-            file: demo/acceptance.md
-            vars: |
-              sha: ${{ github.sha }}
-              environment: production
-              app: cool-app
+          file: demo/acceptance.md
+          vars: |
+            sha: ${{ github.sha }}
+            environment: production
+            app: cool-app
+          reactions: eyes, rocket
+
+      - name: verify rendered comment and reactions
+        env:
+          COMMENT_ID: ${{ steps.create-comment.outputs.comment-id }}
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          actual_body="$(gh api "repos/${GH_REPO}/issues/comments/${COMMENT_ID}" --jq .body)"
+          expected_body="$(cat <<'EOF'
+# Acceptance Test
+
+This comment is from the acceptance test. If you are seeing this, it means the acceptance test has passed! 🎉
+
+**cool-app** has been successfully deployed to **production**
+
+- SHA: `${{ github.sha }}`
+EOF
+          )"
+
+          if [ "${actual_body}" != "${expected_body}" ]; then
+            echo "::error::Rendered acceptance comment did not match the expected body"
+            printf 'Expected:\n%s\n\nActual:\n%s\n' "${expected_body}" "${actual_body}"
+            exit 1
+          fi
+
+          reactions="$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${GH_REPO}/issues/comments/${COMMENT_ID}/reactions" \
+            --jq '[.[].content] | sort | join(",")')"
+
+          if [ "${reactions}" != "eyes,rocket" ]; then
+            echo "::error::Acceptance comment reactions did not match"
+            printf 'Expected: eyes,rocket\nActual: %s\n' "${reactions}"
+            exit 1
+          fi
+
+      - name: append to acceptance comment
+        id: append-comment
+        uses: ./
+        with:
+          comment-id: ${{ steps.create-comment.outputs.comment-id }}
+          body: Acceptance append check for run ${{ github.run_id }}.
+
+      - name: verify append mode
+        env:
+          COMMENT_ID: ${{ steps.create-comment.outputs.comment-id }}
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          actual_body="$(gh api "repos/${GH_REPO}/issues/comments/${COMMENT_ID}" --jq .body)"
+          expected_body="$(cat <<'EOF'
+# Acceptance Test
+
+This comment is from the acceptance test. If you are seeing this, it means the acceptance test has passed! 🎉
+
+**cool-app** has been successfully deployed to **production**
+
+- SHA: `${{ github.sha }}`
+
+Acceptance append check for run ${{ github.run_id }}.
+EOF
+          )"
+
+          if [ "${actual_body}" != "${expected_body}" ]; then
+            echo "::error::Append mode did not match the expected body"
+            printf 'Expected:\n%s\n\nActual:\n%s\n' "${expected_body}" "${actual_body}"
+            exit 1
+          fi
+
+      - name: replace acceptance comment
+        id: replace-comment
+        uses: ./
+        with:
+          comment-id: ${{ steps.create-comment.outputs.comment-id }}
+          edit-mode: replace
+          file: demo/acceptance.md
+          vars: |
+            sha: ${{ github.sha }}
+            environment: production
+            app: cool-app
+
+      - name: verify replace mode
+        env:
+          COMMENT_ID: ${{ steps.create-comment.outputs.comment-id }}
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          actual_body="$(gh api "repos/${GH_REPO}/issues/comments/${COMMENT_ID}" --jq .body)"
+          expected_body="$(cat <<'EOF'
+# Acceptance Test
+
+This comment is from the acceptance test. If you are seeing this, it means the acceptance test has passed! 🎉
+
+**cool-app** has been successfully deployed to **production**
+
+- SHA: `${{ github.sha }}`
+EOF
+          )"
+
+          if [ "${actual_body}" != "${expected_body}" ]; then
+            echo "::error::Replace mode did not match the expected body"
+            printf 'Expected:\n%s\n\nActual:\n%s\n' "${expected_body}" "${actual_body}"
+            exit 1
+          fi

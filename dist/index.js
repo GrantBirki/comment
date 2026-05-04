@@ -41980,6 +41980,354 @@ module.exports = {
 
 /***/ }),
 
+/***/ 3220:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const {inspect} = __nccwpck_require__(9023)
+const path = __nccwpck_require__(6928)
+const core = __nccwpck_require__(7484)
+const github = __nccwpck_require__(3228)
+const nunjucks = __nccwpck_require__(8115)
+const yaml = __nccwpck_require__(4281)
+
+const REACTION_TYPES = [
+  '+1',
+  '-1',
+  'laugh',
+  'confused',
+  'heart',
+  'hooray',
+  'rocket',
+  'eyes'
+]
+
+function getInputs(actionsCore = core) {
+  const reactions =
+    actionsCore.getInput('reactions') || actionsCore.getInput('reaction-type')
+
+  return {
+    token: actionsCore.getInput('token'),
+    repository: actionsCore.getInput('repository'),
+    issueNumber: actionsCore.getInput('issue-number'),
+    commentId: actionsCore.getInput('comment-id'),
+    body: actionsCore.getInput('body'),
+    editMode: actionsCore.getInput('edit-mode'),
+    vars: actionsCore.getInput('vars'),
+    file: actionsCore.getInput('file'),
+    reactions
+  }
+}
+
+function sanitizeInputs(inputs) {
+  return {
+    ...inputs,
+    token: inputs.token ? '[secure]' : ''
+  }
+}
+
+function resolveIssueNumber(issueNumber, githubContext) {
+  if (issueNumber) {
+    return issueNumber
+  }
+
+  const payload = githubContext && githubContext.payload
+  if (!payload) {
+    return ''
+  }
+
+  if (payload.issue && payload.issue.number) {
+    return payload.issue.number
+  }
+
+  if (payload.pull_request && payload.pull_request.number) {
+    return payload.pull_request.number
+  }
+
+  return payload.number || ''
+}
+
+function resolveRepository(repositoryInput, env = process.env) {
+  const repository = repositoryInput || env.GITHUB_REPOSITORY
+
+  if (!repository) {
+    throw new Error(
+      "Missing repository. Provide the 'repository' input or GITHUB_REPOSITORY."
+    )
+  }
+
+  const parts = repository.split('/')
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    throw new Error(
+      `Invalid repository '${repository}'. Expected 'owner/repo'.`
+    )
+  }
+
+  return {
+    repository,
+    owner: parts[0],
+    repo: parts[1]
+  }
+}
+
+function parseVars(vars) {
+  if (!vars) {
+    return {}
+  }
+
+  const parsed = yaml.load(vars, {
+    schema: yaml.JSON_SCHEMA,
+    json: true
+  })
+
+  if (parsed === undefined || parsed === null) {
+    return {}
+  }
+
+  if (
+    typeof parsed !== 'object' ||
+    Array.isArray(parsed) ||
+    parsed instanceof Date
+  ) {
+    throw new Error("The 'vars' input must be a YAML mapping")
+  }
+
+  return parsed
+}
+
+async function renderComment(file, vars) {
+  const yamlVars = parseVars(vars)
+  const resolvedFile = path.resolve(file)
+  const environment = new nunjucks.Environment(
+    new nunjucks.FileSystemLoader(path.parse(resolvedFile).root, {
+      noCache: true
+    }),
+    {autoescape: true}
+  )
+  return environment.render(resolvedFile, yamlVars)
+}
+
+function validReactions(reactions, actionsCore = core) {
+  return [
+    ...new Set(
+      reactions
+        .split(',')
+        .map(item => item.trim())
+        .filter(Boolean)
+        .filter(item => {
+          if (!REACTION_TYPES.includes(item)) {
+            actionsCore.info(`Skipping invalid reaction '${item}'.`)
+            return false
+          }
+          return true
+        })
+    )
+  ]
+}
+
+async function addReactions(
+  octokit,
+  repo,
+  commentId,
+  reactions,
+  actionsCore = core
+) {
+  const reactionSet = validReactions(reactions, actionsCore)
+
+  if (reactionSet.length === 0) {
+    actionsCore.setFailed(`No valid reactions are contained in '${reactions}'.`)
+    return false
+  }
+
+  const results = await Promise.allSettled(
+    reactionSet.map(async item => {
+      await octokit.rest.reactions.createForIssueComment({
+        owner: repo.owner,
+        repo: repo.repo,
+        comment_id: commentId,
+        content: item
+      })
+      actionsCore.info(`Setting '${item}' reaction on comment.`)
+    })
+  )
+
+  let hasFailure = false
+  for (let i = 0, l = results.length; i < l; i++) {
+    if (results[i].status === 'fulfilled') {
+      actionsCore.info(
+        `Added reaction '${reactionSet[i]}' to comment id '${commentId}'.`
+      )
+    } else if (results[i].status === 'rejected') {
+      hasFailure = true
+      actionsCore.error(
+        `Adding reaction '${reactionSet[i]}' to comment id '${commentId}' failed with ${results[i].reason}.`
+      )
+    }
+  }
+
+  if (hasFailure) {
+    actionsCore.setFailed('Failed to add one or more reactions.')
+    return false
+  }
+
+  return true
+}
+
+async function resolveBody(inputs) {
+  if (inputs.vars && !inputs.file) {
+    throw new Error("The 'file' input must be provided if 'vars' is used")
+  }
+
+  if (inputs.body && inputs.file) {
+    throw new Error("You can only use 'file' or 'body' inputs, not both")
+  }
+
+  if (inputs.file) {
+    return renderComment(inputs.file, inputs.vars)
+  }
+
+  if (inputs.body) {
+    return inputs.body
+  }
+
+  return null
+}
+
+async function updateExistingComment(octokit, repo, inputs, body, actionsCore) {
+  if (!body && !inputs.reactions) {
+    actionsCore.setFailed("Missing either comment 'body' or 'reactions'")
+    return
+  }
+
+  if (body) {
+    let commentBody = ''
+    if (inputs.editMode === 'append') {
+      const {data: comment} = await octokit.rest.issues.getComment({
+        owner: repo.owner,
+        repo: repo.repo,
+        comment_id: inputs.commentId
+      })
+      commentBody = `${comment.body}\n`
+    }
+
+    commentBody = commentBody + body
+    actionsCore.debug(`Comment body: ${commentBody}`)
+
+    await octokit.rest.issues.updateComment({
+      owner: repo.owner,
+      repo: repo.repo,
+      comment_id: inputs.commentId,
+      body: commentBody
+    })
+    actionsCore.info(`Updated comment id '${inputs.commentId}'`)
+    actionsCore.setOutput('comment-id', inputs.commentId)
+  }
+
+  if (inputs.reactions) {
+    await addReactions(
+      octokit,
+      repo,
+      inputs.commentId,
+      inputs.reactions,
+      actionsCore
+    )
+  }
+}
+
+async function createComment(octokit, repo, inputs, body, actionsCore) {
+  if (!body) {
+    actionsCore.setFailed("The 'body' or 'file' input is required")
+    return
+  }
+
+  const {data: comment} = await octokit.rest.issues.createComment({
+    owner: repo.owner,
+    repo: repo.repo,
+    issue_number: inputs.issueNumber,
+    body
+  })
+  actionsCore.info(
+    `Created comment id '${comment.id}' on issue '${inputs.issueNumber}'`
+  )
+  actionsCore.setOutput('comment-id', comment.id)
+
+  if (inputs.reactions) {
+    await addReactions(octokit, repo, comment.id, inputs.reactions, actionsCore)
+  }
+}
+
+async function run({
+  actionsCore = core,
+  githubClient = github,
+  env = process.env
+} = {}) {
+  try {
+    const inputs = getInputs(actionsCore)
+    const issueNumberFallback = resolveIssueNumber(
+      inputs.issueNumber,
+      githubClient.context
+    )
+    actionsCore.debug(`issueNumberFallback: ${issueNumberFallback}`)
+
+    if (!inputs.issueNumber) {
+      actionsCore.debug(
+        `issueNumber is not set, trying to set from the issueNumberFallback: ${issueNumberFallback}`
+      )
+      inputs.issueNumber = issueNumberFallback
+    }
+
+    actionsCore.debug(`Inputs: ${inspect(sanitizeInputs(inputs))}`)
+
+    const repo = resolveRepository(inputs.repository, env)
+    actionsCore.debug(`repository: ${repo.repository}`)
+
+    inputs.editMode = inputs.editMode || 'append'
+    actionsCore.debug(`editMode: ${inputs.editMode}`)
+    if (!['append', 'replace'].includes(inputs.editMode)) {
+      actionsCore.setFailed(`Invalid edit-mode '${inputs.editMode}'`)
+      return
+    }
+
+    const body = await resolveBody(inputs)
+    if (!inputs.commentId && !inputs.issueNumber) {
+      actionsCore.setFailed("Missing either 'issue-number' or 'comment-id'")
+      return
+    }
+
+    const octokit = githubClient.getOctokit(inputs.token)
+
+    if (inputs.commentId) {
+      await updateExistingComment(octokit, repo, inputs, body, actionsCore)
+    } else {
+      await createComment(octokit, repo, inputs, body, actionsCore)
+    }
+  } catch (error) {
+    actionsCore.debug(inspect(error))
+    actionsCore.setFailed(error.message)
+    if (error.message === 'Resource not accessible by integration') {
+      actionsCore.error(`See this action's readme for details about this error`)
+    }
+  }
+}
+
+module.exports = {
+  REACTION_TYPES,
+  addReactions,
+  createComment,
+  getInputs,
+  parseVars,
+  renderComment,
+  resolveBody,
+  resolveIssueNumber,
+  resolveRepository,
+  run,
+  sanitizeInputs,
+  updateExistingComment,
+  validReactions
+}
+
+
+/***/ }),
+
 /***/ 568:
 /***/ ((module) => {
 
@@ -46711,237 +47059,7 @@ legacyRestEndpointMethods.VERSION = VERSION;
 /******/ 	
 /************************************************************************/
 var __webpack_exports__ = {};
-const {inspect} = __nccwpck_require__(9023)
-const core = __nccwpck_require__(7484)
-const github = __nccwpck_require__(3228)
-const nunjucks = __nccwpck_require__(8115)
-const yaml = __nccwpck_require__(4281)
-
-// Valid reaction types
-const REACTION_TYPES = [
-  '+1',
-  '-1',
-  'laugh',
-  'confused',
-  'heart',
-  'hooray',
-  'rocket',
-  'eyes'
-]
-
-// Helper function for adding reactions to a comment
-async function addReactions(octokit, repo, comment_id, reactions) {
-  let ReactionsSet = [
-    ...new Set(
-      reactions
-        .replace(/\s/g, '')
-        .split(',')
-        .filter(item => {
-          if (!REACTION_TYPES.includes(item)) {
-            core.info(`Skipping invalid reaction '${item}'.`)
-            return false
-          }
-          return true
-        })
-    )
-  ]
-
-  // If an invalid reaction is used, fail the workflow
-  if (!ReactionsSet) {
-    core.setFailed(`No valid reactions are contained in '${reactions}'.`)
-    return false
-  }
-
-  let results = await Promise.allSettled(
-    ReactionsSet.map(async item => {
-      await octokit.rest.reactions.createForIssueComment({
-        owner: repo[0],
-        repo: repo[1],
-        comment_id: comment_id,
-        content: item
-      })
-      core.info(`Setting '${item}' reaction on comment.`)
-    })
-  )
-
-  for (let i = 0, l = results.length; i < l; i++) {
-    if (results[i].status === 'fulfilled') {
-      core.info(
-        `Added reaction '${ReactionsSet[i]}' to comment id '${comment_id}'.`
-      )
-    } else if (results[i].status === 'rejected') {
-      core.info(
-        `Adding reaction '${ReactionsSet[i]}' to comment id '${comment_id}' failed with ${results[i].reason}.`
-      )
-    }
-  }
-  ReactionsSet = undefined
-  results = undefined
-}
-
-// Helper function for rendering a comment body from a file with optional variables
-async function renderComment(file, vars) {
-  // Parse the variables from the input if they exist
-  var yamlVars = {}
-  if (vars) {
-    yamlVars = yaml.loadAll(vars)[0]
-  }
-
-  // Render the comment as a string from the file
-  nunjucks.configure({autoescape: true})
-  return nunjucks.render(file, yamlVars)
-}
-
-// The main function that runs the workflow
-async function run() {
-  try {
-    // Collect all the Action inputs
-    const inputs = {
-      token: core.getInput('token'),
-      repository: core.getInput('repository'),
-      issueNumber: core.getInput('issue-number'),
-      commentId: core.getInput('comment-id'),
-      body: core.getInput('body'),
-      editMode: core.getInput('edit-mode'),
-      vars: core.getInput('vars'),
-      file: core.getInput('file'),
-      reactions: core.getInput('reactions')
-        ? core.getInput('reactions')
-        : core.getInput('reaction-type')
-    }
-
-    // in most cases, ${{ github.event.number }} is the issue number
-    // if it is blank, then try to fetch it from the context
-    const issueNumberFallback =
-      github &&
-      github.context &&
-      github.context.payload &&
-      github.context.payload.issue &&
-      github.context.payload.issue.number
-    core.debug(`issueNumberFallback: ${issueNumberFallback}`)
-    if (!inputs.issueNumber) {
-      core.debug(
-        `issueNumber is not set, trying to set from the issueNumberFallback: ${issueNumberFallback}`
-      )
-      inputs.issueNumber = issueNumberFallback
-    }
-
-    core.debug(`Inputs: ${inspect(inputs)}`)
-
-    // Get the GitHub repository
-    const repository = inputs.repository
-      ? inputs.repository
-      : process.env.GITHUB_REPOSITORY
-    const repo = repository.split('/')
-    core.debug(`repository: ${repository}`)
-
-    // Determine the edit mode (append or replace)
-    const editMode = inputs.editMode ? inputs.editMode : 'append'
-    core.debug(`editMode: ${editMode}`)
-    if (!['append', 'replace'].includes(editMode)) {
-      core.setFailed(`Invalid edit-mode '${editMode}'`)
-      return
-    }
-
-    // If the vars input is provided without a file, fail the workflow
-    if (inputs.vars && !inputs.file) {
-      core.setFailed(`The 'file' input must be provided if 'vars' is used`)
-      return
-    }
-
-    // If a body is provided, and a file is provided, fail the workflow
-    if (inputs.body && inputs.file) {
-      core.setFailed(`You can only use 'file' or 'body' inputs, not both`)
-      return
-    }
-
-    // If a file is provided, render the comment body from the file and try to use any vars if they exist
-    let body = ''
-    if (inputs.file) {
-      body = await renderComment(inputs.file, inputs.vars)
-    } else if (inputs.body) {
-      body = inputs.body
-    } else {
-      body = null
-    }
-
-    // Create an Octokit instance
-    const octokit = github.getOctokit(inputs.token)
-
-    // Logic for editing existing comments
-    if (inputs.commentId) {
-      if (!body && !inputs.reactions) {
-        core.setFailed("Missing either comment 'body' or 'reactions'")
-        return
-      }
-
-      if (body) {
-        var commentBody = ''
-        if (editMode == 'append') {
-          // Get the comment body
-          const {data: comment} = await octokit.rest.issues.getComment({
-            owner: repo[0],
-            repo: repo[1],
-            comment_id: inputs.commentId
-          })
-          commentBody = comment.body + '\n'
-        }
-
-        // Append the current comment body with the input body provided
-        commentBody = commentBody + body
-        core.debug(`Comment body: ${commentBody}`)
-
-        // Update the comment with the appended comment body
-        await octokit.rest.issues.updateComment({
-          owner: repo[0],
-          repo: repo[1],
-          comment_id: inputs.commentId,
-          body: commentBody
-        })
-        core.info(`Updated comment id '${inputs.commentId}'`)
-        core.setOutput('comment-id', inputs.commentId)
-      }
-
-      // Set comment reactions
-      if (inputs.reactions) {
-        await addReactions(octokit, repo, inputs.commentId, inputs.reactions)
-      }
-
-      // Logic for creating brand new comments
-    } else if (inputs.issueNumber) {
-      if (!body) {
-        core.setFailed("The 'body' or 'file' input is required")
-        return
-      }
-
-      // Create the comment
-      const {data: comment} = await octokit.rest.issues.createComment({
-        owner: repo[0],
-        repo: repo[1],
-        issue_number: inputs.issueNumber,
-        body: body
-      })
-      core.info(
-        `Created comment id '${comment.id}' on issue '${inputs.issueNumber}'`
-      )
-      core.setOutput('comment-id', comment.id)
-
-      // Set comment reactions
-      if (inputs.reactions) {
-        await addReactions(octokit, repo, comment.id, inputs.reactions)
-      }
-    } else {
-      core.setFailed("Missing either 'issue-number' or 'comment-id'")
-      return
-    }
-  } catch (error) {
-    core.debug(inspect(error))
-    core.setFailed(error.message)
-    if (error.message == 'Resource not accessible by integration') {
-      core.error(`See this action's readme for details about this error`)
-    }
-  }
-}
+const {run} = __nccwpck_require__(3220)
 
 run()
 
