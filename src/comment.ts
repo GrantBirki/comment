@@ -18,6 +18,11 @@ const REACTION_TYPES = [
 ] as const
 
 type ReactionType = (typeof REACTION_TYPES)[number]
+type AppendSeparator = 'newline' | 'none' | 'space'
+type ReactionsEditMode = 'append' | 'replace'
+
+const COMMENT_BODY_MAX_LENGTH = 65536
+const TRUNCATE_WARNING = '...*[Comment body truncated]*'
 
 interface ActionsCore {
   debug(message: string): void
@@ -26,6 +31,7 @@ interface ActionsCore {
   info(message: string): void
   setFailed(message: string): void
   setOutput(name: string, value: number | string): void
+  warning(message: string): void
 }
 
 interface ActionInputs {
@@ -35,9 +41,11 @@ interface ActionInputs {
   commentId: string
   body: string
   editMode: string
+  appendSeparator: string
   vars: string
   file: string
   reactions: string
+  reactionsEditMode: string
 }
 
 interface GithubPayload {
@@ -92,7 +100,37 @@ interface ReactionOptions {
   content: ReactionType
 }
 
+interface DeleteReactionOptions {
+  owner: string
+  repo: string
+  comment_id: number | string
+  reaction_id: number
+}
+
+interface ListReactionOptions {
+  owner: string
+  repo: string
+  comment_id: number | string
+  per_page?: number
+}
+
+interface ExistingReaction {
+  id: number
+  content: string
+  user?: null | {
+    login?: string
+  }
+}
+
 interface OctokitClient {
+  paginate?: {
+    iterator(
+      endpoint: (options: ListReactionOptions) => Promise<{
+        data: ExistingReaction[]
+      }>,
+      options: ListReactionOptions
+    ): AsyncIterable<{data: ExistingReaction[]}>
+  }
   rest: {
     issues: {
       createComment(
@@ -109,6 +147,17 @@ interface OctokitClient {
     }
     reactions: {
       createForIssueComment(options: ReactionOptions): Promise<unknown>
+      deleteForIssueComment(options: DeleteReactionOptions): Promise<unknown>
+      listForIssueComment(options: ListReactionOptions): Promise<{
+        data: ExistingReaction[]
+      }>
+    }
+    users: {
+      getAuthenticated(): Promise<{
+        data: {
+          login: string
+        }
+      }>
     }
   }
 }
@@ -175,9 +224,11 @@ function getInputs(actionsCore: ActionsCore = core): ActionInputs {
     commentId: actionsCore.getInput('comment-id'),
     body: actionsCore.getInput('body'),
     editMode: actionsCore.getInput('edit-mode'),
+    appendSeparator: actionsCore.getInput('append-separator'),
     vars: actionsCore.getInput('vars'),
     file: actionsCore.getInput('file'),
-    reactions
+    reactions,
+    reactionsEditMode: actionsCore.getInput('reactions-edit-mode')
   }
 }
 
@@ -279,6 +330,14 @@ function isReactionType(reaction: string): reaction is ReactionType {
   return (REACTION_TYPES as readonly string[]).includes(reaction)
 }
 
+function isAppendSeparator(separator: string): separator is AppendSeparator {
+  return ['newline', 'none', 'space'].includes(separator)
+}
+
+function isReactionsEditMode(mode: string): mode is ReactionsEditMode {
+  return ['append', 'replace'].includes(mode)
+}
+
 function validReactions(
   reactions: string,
   actionsCore: ActionsCore = core
@@ -286,7 +345,7 @@ function validReactions(
   return [
     ...new Set(
       reactions
-        .split(',')
+        .split(/[\n,]+/)
         .map(item => item.trim())
         .filter(Boolean)
         .filter((item): item is ReactionType => {
@@ -300,20 +359,13 @@ function validReactions(
   ]
 }
 
-async function addReactions(
+async function addReactionSet(
   octokit: OctokitClient,
   repo: Repository,
   commentId: number | string,
-  reactions: string,
+  reactionSet: ReactionType[],
   actionsCore: ActionsCore = core
 ): Promise<boolean> {
-  const reactionSet = validReactions(reactions, actionsCore)
-
-  if (reactionSet.length === 0) {
-    actionsCore.setFailed(`No valid reactions are contained in '${reactions}'.`)
-    return false
-  }
-
   const results = await Promise.allSettled(
     reactionSet.map(async item => {
       await octokit.rest.reactions.createForIssueComment({
@@ -352,6 +404,197 @@ async function addReactions(
   }
 
   return true
+}
+
+async function addReactions(
+  octokit: OctokitClient,
+  repo: Repository,
+  commentId: number | string,
+  reactions: string,
+  actionsCore: ActionsCore = core
+): Promise<boolean> {
+  const reactionSet = validReactions(reactions, actionsCore)
+
+  if (reactionSet.length === 0) {
+    actionsCore.setFailed(`No valid reactions are contained in '${reactions}'.`)
+    return false
+  }
+
+  return addReactionSet(octokit, repo, commentId, reactionSet, actionsCore)
+}
+
+async function removeReactions(
+  octokit: OctokitClient,
+  repo: Repository,
+  commentId: number | string,
+  reactions: ExistingReaction[],
+  actionsCore: ActionsCore = core
+): Promise<boolean> {
+  const results = await Promise.allSettled(
+    reactions.map(async reaction => {
+      await octokit.rest.reactions.deleteForIssueComment({
+        owner: repo.owner,
+        repo: repo.repo,
+        comment_id: commentId,
+        reaction_id: reaction.id
+      })
+      actionsCore.info(`Removing '${reaction.content}' reaction from comment.`)
+    })
+  )
+
+  let hasFailure = false
+  for (let i = 0, l = results.length; i < l; i++) {
+    const result = results[i]
+    const reaction = reactions[i]
+    if (!result || !reaction) {
+      continue
+    }
+
+    if (result.status === 'fulfilled') {
+      actionsCore.info(
+        `Removed reaction '${reaction.content}' from comment id '${commentId}'.`
+      )
+    } else {
+      hasFailure = true
+      actionsCore.error(
+        `Removing reaction '${reaction.content}' from comment id '${commentId}' failed with ${result.reason}.`
+      )
+    }
+  }
+
+  if (hasFailure) {
+    actionsCore.setFailed('Failed to remove one or more reactions.')
+    return false
+  }
+
+  return true
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+async function getAuthenticatedUser(octokit: OctokitClient): Promise<string> {
+  try {
+    const {data: user} = await octokit.rest.users.getAuthenticated()
+    return user.login
+  } catch (error) {
+    if (
+      getErrorMessage(error).includes('Resource not accessible by integration')
+    ) {
+      return 'github-actions[bot]'
+    }
+    throw error
+  }
+}
+
+async function getCommentReactionsForUser(
+  octokit: OctokitClient,
+  repo: Repository,
+  commentId: number | string,
+  user: string
+): Promise<ExistingReaction[]> {
+  const userReactions: ExistingReaction[] = []
+  const options = {
+    owner: repo.owner,
+    repo: repo.repo,
+    comment_id: commentId,
+    per_page: 100
+  }
+
+  if (octokit.paginate?.iterator) {
+    for await (const {data: reactions} of octokit.paginate.iterator(
+      octokit.rest.reactions.listForIssueComment,
+      options
+    )) {
+      userReactions.push(
+        ...reactions.filter(reaction => reaction.user?.login === user)
+      )
+    }
+    return userReactions
+  }
+
+  const {data: reactions} =
+    await octokit.rest.reactions.listForIssueComment(options)
+  return reactions.filter(reaction => reaction.user?.login === user)
+}
+
+async function replaceReactions(
+  octokit: OctokitClient,
+  repo: Repository,
+  commentId: number | string,
+  reactionSet: ReactionType[],
+  actionsCore: ActionsCore = core
+): Promise<boolean> {
+  const authenticatedUser = await getAuthenticatedUser(octokit)
+  const userReactions = await getCommentReactionsForUser(
+    octokit,
+    repo,
+    commentId,
+    authenticatedUser
+  )
+
+  if (userReactions.length > 0) {
+    const removed = await removeReactions(
+      octokit,
+      repo,
+      commentId,
+      userReactions,
+      actionsCore
+    )
+    if (!removed) {
+      return false
+    }
+  }
+
+  return addReactionSet(octokit, repo, commentId, reactionSet, actionsCore)
+}
+
+async function applyReactions(
+  octokit: OctokitClient,
+  repo: Repository,
+  commentId: number | string,
+  reactions: string,
+  reactionsEditMode: string,
+  actionsCore: ActionsCore = core
+): Promise<boolean> {
+  const reactionSet = validReactions(reactions, actionsCore)
+
+  if (reactionSet.length === 0) {
+    actionsCore.setFailed(`No valid reactions are contained in '${reactions}'.`)
+    return false
+  }
+
+  if (reactionsEditMode === 'replace') {
+    return replaceReactions(octokit, repo, commentId, reactionSet, actionsCore)
+  }
+
+  return addReactionSet(octokit, repo, commentId, reactionSet, actionsCore)
+}
+
+function appendSeparatorTo(body: string, separator: string): string {
+  switch (separator) {
+    case 'newline':
+      return `${body}\n`
+    case 'space':
+      return `${body} `
+    default:
+      return body
+  }
+}
+
+function truncateBody(body: string, actionsCore: ActionsCore = core): string {
+  if (body.length <= COMMENT_BODY_MAX_LENGTH) {
+    return body
+  }
+
+  actionsCore.warning(
+    `Comment body is too long. Truncating to ${COMMENT_BODY_MAX_LENGTH} characters.`
+  )
+  return (
+    body.substring(0, COMMENT_BODY_MAX_LENGTH - TRUNCATE_WARNING.length) +
+    TRUNCATE_WARNING
+  )
 }
 
 async function resolveBody(inputs: ActionInputs): Promise<null | string> {
@@ -394,10 +637,13 @@ async function updateExistingComment(
         repo: repo.repo,
         comment_id: inputs.commentId
       })
-      commentBody = `${comment.body || ''}\n`
+      commentBody = appendSeparatorTo(
+        comment.body || '',
+        inputs.appendSeparator
+      )
     }
 
-    commentBody = commentBody + body
+    commentBody = truncateBody(commentBody + body, actionsCore)
     actionsCore.debug(`Comment body: ${commentBody}`)
 
     await octokit.rest.issues.updateComment({
@@ -411,11 +657,12 @@ async function updateExistingComment(
   }
 
   if (inputs.reactions) {
-    await addReactions(
+    await applyReactions(
       octokit,
       repo,
       inputs.commentId,
       inputs.reactions,
+      inputs.reactionsEditMode,
       actionsCore
     )
   }
@@ -437,7 +684,7 @@ async function createComment(
     owner: repo.owner,
     repo: repo.repo,
     issue_number: inputs.issueNumber,
-    body
+    body: truncateBody(body, actionsCore)
   })
   actionsCore.info(
     `Created comment id '${comment.id}' on issue '${inputs.issueNumber}'`
@@ -445,7 +692,14 @@ async function createComment(
   actionsCore.setOutput('comment-id', comment.id)
 
   if (inputs.reactions) {
-    await addReactions(octokit, repo, comment.id, inputs.reactions, actionsCore)
+    await applyReactions(
+      octokit,
+      repo,
+      comment.id,
+      inputs.reactions,
+      inputs.reactionsEditMode,
+      actionsCore
+    )
   }
 }
 
@@ -453,10 +707,6 @@ interface RunOptions {
   actionsCore?: ActionsCore
   githubClient?: GithubClient
   env?: Environment
-}
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
 }
 
 async function run({
@@ -491,6 +741,24 @@ async function run({
       return
     }
 
+    inputs.appendSeparator = inputs.appendSeparator || 'newline'
+    actionsCore.debug(`appendSeparator: ${inputs.appendSeparator}`)
+    if (!isAppendSeparator(inputs.appendSeparator)) {
+      actionsCore.setFailed(
+        `Invalid append-separator '${inputs.appendSeparator}'`
+      )
+      return
+    }
+
+    inputs.reactionsEditMode = inputs.reactionsEditMode || 'append'
+    actionsCore.debug(`reactionsEditMode: ${inputs.reactionsEditMode}`)
+    if (!isReactionsEditMode(inputs.reactionsEditMode)) {
+      actionsCore.setFailed(
+        `Invalid reactions-edit-mode '${inputs.reactionsEditMode}'`
+      )
+      return
+    }
+
     const body = await resolveBody(inputs)
     if (!inputs.commentId && !inputs.issueNumber) {
       actionsCore.setFailed("Missing either 'issue-number' or 'comment-id'")
@@ -518,15 +786,21 @@ export {
   REACTION_TYPES,
   SafeTemplateLoader,
   addReactions,
+  appendSeparatorTo,
+  applyReactions,
   createComment,
   getInputs,
+  getAuthenticatedUser,
+  getCommentReactionsForUser,
   parseVars,
   renderComment,
+  replaceReactions,
   resolveBody,
   resolveIssueNumber,
   resolveRepository,
   run,
   sanitizeInputs,
+  truncateBody,
   updateExistingComment,
   validReactions
 }
@@ -534,13 +808,18 @@ export {
 export type {
   ActionInputs,
   ActionsCore,
+  AppendSeparator,
   CreateCommentOptions,
+  DeleteReactionOptions,
+  ExistingReaction,
   GetCommentOptions,
   GithubClient,
   GithubContext,
+  ListReactionOptions,
   OctokitClient,
   ReactionOptions,
   ReactionType,
+  ReactionsEditMode,
   Repository,
   UpdateCommentOptions
 }

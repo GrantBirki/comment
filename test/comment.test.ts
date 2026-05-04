@@ -6,6 +6,7 @@ import test from 'node:test'
 
 import {
   addReactions,
+  appendSeparatorTo,
   getInputs,
   parseVars,
   renderComment,
@@ -13,11 +14,14 @@ import {
   resolveRepository,
   run,
   sanitizeInputs,
+  truncateBody,
   validReactions
 } from '../src/comment.js'
 import type {
   ActionsCore,
   CreateCommentOptions,
+  DeleteReactionOptions,
+  ExistingReaction,
   GetCommentOptions,
   GithubClient,
   GithubContext,
@@ -33,6 +37,7 @@ interface CoreCalls {
   failed: string[]
   info: string[]
   outputs: Record<string, number | string>
+  warning: string[]
 }
 
 interface TestCore extends ActionsCore {
@@ -45,7 +50,8 @@ function makeCore(inputs: Record<string, string> = {}): TestCore {
     error: [],
     failed: [],
     info: [],
-    outputs: {}
+    outputs: {},
+    warning: []
   }
 
   return {
@@ -67,13 +73,19 @@ function makeCore(inputs: Record<string, string> = {}): TestCore {
     },
     setOutput(name: string, value: number | string) {
       calls.outputs[name] = value
+    },
+    warning(message: string) {
+      calls.warning.push(String(message))
     }
   }
 }
 
 interface OctokitCalls {
   createComment: CreateCommentOptions[]
+  deleteReaction: DeleteReactionOptions[]
   getComment: GetCommentOptions[]
+  getAuthenticated: number
+  listReactions: number
   reactions: ReactionOptions[]
   updateComment: UpdateCommentOptions[]
 }
@@ -86,16 +98,23 @@ interface MakeOctokitOptions {
   createId?: number
   existingBody?: string
   failReaction?: string
+  getAuthenticatedFails?: boolean
+  reactions?: ExistingReaction[]
 }
 
 function makeOctokit({
   createId = 101,
   existingBody = 'existing comment',
-  failReaction
+  failReaction,
+  getAuthenticatedFails = false,
+  reactions = []
 }: MakeOctokitOptions = {}): TestOctokit {
   const calls: OctokitCalls = {
     createComment: [],
+    deleteReaction: [],
     getComment: [],
+    getAuthenticated: 0,
+    listReactions: 0,
     reactions: [],
     updateComment: []
   }
@@ -124,6 +143,23 @@ function makeOctokit({
             throw new Error(`failed ${options.content}`)
           }
           return {data: {content: options.content}}
+        },
+        async deleteForIssueComment(options: DeleteReactionOptions) {
+          calls.deleteReaction.push(options)
+          return {data: {}}
+        },
+        async listForIssueComment() {
+          calls.listReactions += 1
+          return {data: reactions}
+        }
+      },
+      users: {
+        async getAuthenticated() {
+          calls.getAuthenticated += 1
+          if (getAuthenticatedFails) {
+            throw new Error('Resource not accessible by integration')
+          }
+          return {data: {login: 'github-actions[bot]'}}
         }
       }
     }
@@ -193,9 +229,11 @@ test('getInputs prefers reactions over deprecated reaction-type', () => {
       commentId: '',
       body: 'hello',
       editMode: '',
+      appendSeparator: '',
       vars: '',
       file: '',
-      reactions: 'eyes'
+      reactions: 'eyes',
+      reactionsEditMode: ''
     }
   )
 
@@ -335,9 +373,11 @@ test('sanitizeInputs masks the token before debug logging', () => {
       commentId: '',
       body: '',
       editMode: '',
+      appendSeparator: '',
       vars: '',
       file: '',
-      reactions: ''
+      reactions: '',
+      reactionsEditMode: ''
     }
   )
   assert.deepEqual(sanitizeInputs({...getInputs(makeCore()), body: 'hello'}), {
@@ -347,20 +387,45 @@ test('sanitizeInputs masks the token before debug logging', () => {
     commentId: '',
     body: 'hello',
     editMode: '',
+    appendSeparator: '',
     vars: '',
     file: '',
-    reactions: ''
+    reactions: '',
+    reactionsEditMode: ''
   })
 })
 
 test('validReactions trims, filters, and de-duplicates reaction inputs', () => {
   const core = makeCore()
 
-  assert.deepEqual(validReactions(' eyes, rocket,eyes, nope ', core), [
+  assert.deepEqual(validReactions(' eyes, rocket\neyes\nheart, nope ', core), [
     'eyes',
-    'rocket'
+    'rocket',
+    'heart'
   ])
   assert.match(core.calls.info.join('\n'), /Skipping invalid reaction 'nope'/)
+})
+
+test('appendSeparatorTo supports newline, space, and none separators', () => {
+  assert.equal(appendSeparatorTo('old', 'newline'), 'old\n')
+  assert.equal(appendSeparatorTo('old', 'space'), 'old ')
+  assert.equal(appendSeparatorTo('old', 'none'), 'old')
+})
+
+test('truncateBody keeps short bodies and truncates long bodies with a warning', () => {
+  const core = makeCore()
+  const shortBody = 'hello'
+  const longBody = 'a'.repeat(66000)
+  const truncateWarning = '...*[Comment body truncated]*'
+
+  assert.equal(truncateBody(shortBody, core), shortBody)
+
+  const truncated = truncateBody(longBody, core)
+  assert.equal(truncated.length, 65536)
+  assert.equal(truncated.endsWith(truncateWarning), true)
+  assert.deepEqual(core.calls.warning, [
+    'Comment body is too long. Truncating to 65536 characters.'
+  ])
 })
 
 test('addReactions adds valid reactions and skips invalid entries', async () => {
@@ -476,6 +541,54 @@ test('run updates an existing comment in append mode by default', async () => {
   assert.deepEqual(core.calls.outputs, {'comment-id': '99'})
 })
 
+test('run supports space and none append separators', async () => {
+  const spaceCore = makeCore({
+    body: 'new content',
+    'comment-id': '99',
+    'append-separator': 'space',
+    repository: 'owner/repo',
+    token: 'token'
+  })
+  const spaceOctokit = makeOctokit({existingBody: 'old content'})
+
+  await run({
+    actionsCore: spaceCore,
+    githubClient: makeGithubClient(spaceOctokit)
+  })
+
+  assert.deepEqual(spaceOctokit.calls.updateComment, [
+    {
+      owner: 'owner',
+      repo: 'repo',
+      comment_id: '99',
+      body: 'old content new content'
+    }
+  ])
+
+  const noneCore = makeCore({
+    body: 'new content',
+    'comment-id': '99',
+    'append-separator': 'none',
+    repository: 'owner/repo',
+    token: 'token'
+  })
+  const noneOctokit = makeOctokit({existingBody: 'old content'})
+
+  await run({
+    actionsCore: noneCore,
+    githubClient: makeGithubClient(noneOctokit)
+  })
+
+  assert.deepEqual(noneOctokit.calls.updateComment, [
+    {
+      owner: 'owner',
+      repo: 'repo',
+      comment_id: '99',
+      body: 'old contentnew content'
+    }
+  ])
+})
+
 test('run replaces an existing comment without fetching the old body', async () => {
   const core = makeCore({
     body: 'replacement content',
@@ -520,6 +633,62 @@ test('run supports reaction-only updates to an existing comment', async () => {
   )
 })
 
+test('run replaces reactions for the authenticated user', async () => {
+  const core = makeCore({
+    'comment-id': '99',
+    reactions: 'heart\nhooray',
+    'reactions-edit-mode': 'replace',
+    repository: 'owner/repo',
+    token: 'token'
+  })
+  const octokit = makeOctokit({
+    reactions: [
+      {id: 1, content: 'eyes', user: {login: 'github-actions[bot]'}},
+      {id: 2, content: 'rocket', user: {login: 'github-actions[bot]'}},
+      {id: 3, content: 'laugh', user: {login: 'octocat'}}
+    ]
+  })
+
+  await run({actionsCore: core, githubClient: makeGithubClient(octokit)})
+
+  assert.equal(octokit.calls.getAuthenticated, 1)
+  assert.equal(octokit.calls.listReactions, 1)
+  assert.deepEqual(
+    octokit.calls.deleteReaction.map(call => call.reaction_id),
+    [1, 2]
+  )
+  assert.deepEqual(
+    octokit.calls.reactions.map(call => call.content),
+    ['heart', 'hooray']
+  )
+  assert.equal(core.calls.failed.length, 0)
+})
+
+test('run falls back to github-actions bot when replacing reactions with GITHUB_TOKEN restrictions', async () => {
+  const core = makeCore({
+    'comment-id': '99',
+    reactions: 'heart',
+    'reactions-edit-mode': 'replace',
+    repository: 'owner/repo',
+    token: 'token'
+  })
+  const octokit = makeOctokit({
+    getAuthenticatedFails: true,
+    reactions: [{id: 1, content: 'eyes', user: {login: 'github-actions[bot]'}}]
+  })
+
+  await run({actionsCore: core, githubClient: makeGithubClient(octokit)})
+
+  assert.deepEqual(
+    octokit.calls.deleteReaction.map(call => call.reaction_id),
+    [1]
+  )
+  assert.deepEqual(
+    octokit.calls.reactions.map(call => call.content),
+    ['heart']
+  )
+})
+
 test('run adds reactions when creating a new comment', async () => {
   const core = makeCore({
     body: 'hello',
@@ -539,6 +708,46 @@ test('run adds reactions when creating a new comment', async () => {
   assert.deepEqual(octokit.calls.reactions, [
     {owner: 'owner', repo: 'repo', comment_id: 456, content: 'eyes'}
   ])
+})
+
+test('run truncates long bodies before creating and updating comments', async () => {
+  const longBody = 'a'.repeat(66000)
+  const truncateWarning = '...*[Comment body truncated]*'
+  const createCore = makeCore({
+    body: longBody,
+    'issue-number': '1',
+    repository: 'owner/repo',
+    token: 'token'
+  })
+  const createOctokit = makeOctokit()
+
+  await run({
+    actionsCore: createCore,
+    githubClient: makeGithubClient(createOctokit)
+  })
+
+  const createdBody = createOctokit.calls.createComment[0]?.body || ''
+  assert.equal(createdBody.length, 65536)
+  assert.equal(createdBody.endsWith(truncateWarning), true)
+  assert.equal(createCore.calls.warning.length, 1)
+
+  const updateCore = makeCore({
+    body: longBody,
+    'comment-id': '99',
+    repository: 'owner/repo',
+    token: 'token'
+  })
+  const updateOctokit = makeOctokit({existingBody: 'old content'})
+
+  await run({
+    actionsCore: updateCore,
+    githubClient: makeGithubClient(updateOctokit)
+  })
+
+  const updatedBody = updateOctokit.calls.updateComment[0]?.body || ''
+  assert.equal(updatedBody.length, 65536)
+  assert.equal(updatedBody.endsWith(truncateWarning), true)
+  assert.equal(updateCore.calls.warning.length, 1)
 })
 
 test('run supports deprecated reaction-type when reactions is not set', async () => {
@@ -607,6 +816,42 @@ test('run rejects invalid edit modes before calling GitHub', async () => {
   await run({actionsCore: core, githubClient})
 
   assert.deepEqual(core.calls.failed, ["Invalid edit-mode 'overwrite'"])
+  assert.equal(githubClient.calls.getOctokit.length, 0)
+})
+
+test('run rejects invalid append separators before calling GitHub', async () => {
+  const core = makeCore({
+    body: 'hello',
+    'append-separator': 'tab',
+    'issue-number': '1',
+    repository: 'owner/repo',
+    token: 'token'
+  })
+  const octokit = makeOctokit()
+  const githubClient = makeGithubClient(octokit)
+
+  await run({actionsCore: core, githubClient})
+
+  assert.deepEqual(core.calls.failed, ["Invalid append-separator 'tab'"])
+  assert.equal(githubClient.calls.getOctokit.length, 0)
+})
+
+test('run rejects invalid reactions edit modes before calling GitHub', async () => {
+  const core = makeCore({
+    body: 'hello',
+    'reactions-edit-mode': 'overwrite',
+    'issue-number': '1',
+    repository: 'owner/repo',
+    token: 'token'
+  })
+  const octokit = makeOctokit()
+  const githubClient = makeGithubClient(octokit)
+
+  await run({actionsCore: core, githubClient})
+
+  assert.deepEqual(core.calls.failed, [
+    "Invalid reactions-edit-mode 'overwrite'"
+  ])
   assert.equal(githubClient.calls.getOctokit.length, 0)
 })
 

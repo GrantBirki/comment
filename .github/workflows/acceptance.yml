@@ -204,6 +204,122 @@ jobs:
             exit 1
           fi
 
+      - name: replace reactions with newline input
+        id: replace-reactions
+        uses: ./
+        with:
+          comment-id: ${{ steps.create-comment.outputs.comment-id }}
+          reactions-edit-mode: replace
+          reactions: |
+            hooray
+            laugh
+
+      - name: verify reaction replacement
+        env:
+          COMMENT_ID: ${{ steps.create-comment.outputs.comment-id }}
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          actual_body="$(gh api "repos/${GH_REPO}/issues/comments/${COMMENT_ID}" --jq .body)"
+          expected_body="$(cat <<'EOF'
+          # Acceptance Test
+
+          This comment is from the acceptance test. If you are seeing this, it means the acceptance test has passed! 🎉
+
+          **cool-app** has been successfully deployed to **production**
+
+          - SHA: `${{ github.sha }}`
+          EOF
+          )"
+
+          if [ "${actual_body}" != "${expected_body}" ]; then
+            echo "::error::Reaction replacement changed the comment body"
+            printf 'Expected:\n%s\n\nActual:\n%s\n' "${expected_body}" "${actual_body}"
+            exit 1
+          fi
+
+          reactions="$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${GH_REPO}/issues/comments/${COMMENT_ID}/reactions" \
+            --jq '[.[].content] | sort | join(",")')"
+
+          if [ "${reactions}" != "hooray,laugh" ]; then
+            echo "::error::Reaction replacement did not match"
+            printf 'Expected: hooray,laugh\nActual: %s\n' "${reactions}"
+            exit 1
+          fi
+
+      - name: create separator acceptance comment
+        id: separator-comment
+        uses: ./
+        with:
+          body: alpha
+
+      - name: append with space separator
+        uses: ./
+        with:
+          comment-id: ${{ steps.separator-comment.outputs.comment-id }}
+          append-separator: space
+          body: beta
+
+      - name: append with no separator
+        uses: ./
+        with:
+          comment-id: ${{ steps.separator-comment.outputs.comment-id }}
+          append-separator: none
+          body: gamma
+
+      - name: verify append separators
+        env:
+          COMMENT_ID: ${{ steps.separator-comment.outputs.comment-id }}
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          actual_body="$(gh api "repos/${GH_REPO}/issues/comments/${COMMENT_ID}" --jq .body)"
+
+          if [ "${actual_body}" != "alpha betagamma" ]; then
+            echo "::error::Append separators did not produce the expected body"
+            printf 'Expected: alpha betagamma\nActual: %s\n' "${actual_body}"
+            exit 1
+          fi
+
+      - name: create long acceptance body
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          Path("long-comment.md").write_text("a" * 66000)
+          PY
+
+      - name: create truncated acceptance comment
+        id: long-comment
+        uses: ./
+        with:
+          file: long-comment.md
+
+      - name: verify long comment truncation
+        env:
+          COMMENT_ID: ${{ steps.long-comment.outputs.comment-id }}
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          actual_body="$(gh api "repos/${GH_REPO}/issues/comments/${COMMENT_ID}" --jq .body)"
+          suffix='...*[Comment body truncated]*'
+
+          if [ "${#actual_body}" -ne 65536 ]; then
+            echo "::error::Long comment was not truncated to 65,536 characters"
+            printf 'Actual length: %s\n' "${#actual_body}"
+            exit 1
+          fi
+
+          case "${actual_body}" in
+            *"${suffix}") ;;
+            *)
+              echo "::error::Long comment did not include the truncation suffix"
+              exit 1
+              ;;
+          esac
+
       - name: reject invalid-only reactions
         id: invalid-reactions
         continue-on-error: true
