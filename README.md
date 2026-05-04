@@ -98,7 +98,9 @@ For more information about **templating**, be sure to check out the [templating]
 | `file` | The path to a file to use as a comment body | false | |
 | `vars` | Template variables in yaml format for rendering with a provided file | false | |
 | `edit-mode` | The mode when updating a comment, `replace` or `append` | false | `append` |
-| `reactions` | A comma separated list of reactions to add to the comment (`+1`, `-1`, `laugh`, `confused`, `heart`, `hooray`, `rocket`, `eyes`) | false | |
+| `append-separator` | The separator to use when appending to an existing comment, `newline`, `space`, or `none` | false | `newline` |
+| `reactions` | A comma or newline separated list of reactions to add to the comment (`+1`, `-1`, `laugh`, `confused`, `heart`, `hooray`, `rocket`, `eyes`) | false | |
+| `reactions-edit-mode` | The mode when updating comment reactions, `replace` or `append` | false | `append` |
 
 #### Outputs 📤
 
@@ -119,6 +121,51 @@ Note that in order to read the step output the action step must have an id.
     - name: Check outputs
       run: echo "Comment ID - ${{ steps.comment.outputs.comment-id }}"
 ```
+
+### Append Separators
+
+When updating an existing comment with `edit-mode: append`, this Action inserts
+the `append-separator` value between the existing body and the appended body.
+
+```yml
+    - name: Append inline status
+      uses: GrantBirki/comment@vX.X.X
+      with:
+        comment-id: 123456789
+        append-separator: space
+        body: ✅
+```
+
+Available separators:
+
+- `newline` - append after a newline
+- `space` - append after a space
+- `none` - append directly after the existing body
+
+### Reaction Replacement
+
+By default, reactions are appended to the comment. Set
+`reactions-edit-mode: replace` to remove reactions previously added by the
+authenticated user before adding the requested reactions.
+
+```yml
+    - name: Replace bot reactions
+      uses: GrantBirki/comment@vX.X.X
+      with:
+        comment-id: 123456789
+        reactions-edit-mode: replace
+        reactions: |
+          rocket
+          hooray
+```
+
+The `reactions` input accepts comma-separated or newline-separated values.
+
+### Long Comments
+
+GitHub issue comments have a maximum body length of 65,536 characters. If the
+final comment body exceeds that limit, this Action truncates the body and appends
+`...*[Comment body truncated]*`.
 
 ### Issue Number 🔢
 

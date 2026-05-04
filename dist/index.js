@@ -34932,7 +34932,7 @@ __nccwpck_require__.d(__webpack_exports__, {
   eF: () => (/* binding */ run)
 });
 
-// UNUSED EXPORTS: REACTION_TYPES, SafeTemplateLoader, addReactions, createComment, getInputs, parseVars, renderComment, resolveBody, resolveIssueNumber, resolveRepository, sanitizeInputs, updateExistingComment, validReactions
+// UNUSED EXPORTS: REACTION_TYPES, SafeTemplateLoader, addReactions, appendSeparatorTo, applyReactions, createComment, getAuthenticatedUser, getCommentReactionsForUser, getInputs, parseVars, renderComment, replaceReactions, resolveBody, resolveIssueNumber, resolveRepository, sanitizeInputs, truncateBody, updateExistingComment, validReactions
 
 // NAMESPACE OBJECT: ./node_modules/@actions/core/lib/platform.js
 var platform_namespaceObject = {};
@@ -43005,7 +43005,7 @@ var json = failsafe.extend({
   ]
 });
 
-var core = json;
+var js_yaml_core = json;
 
 var YAML_DATE_REGEXP = new RegExp(
   '^([0-9][0-9][0-9][0-9])'          + // [1] year
@@ -43342,7 +43342,7 @@ var set = new type('tag:yaml.org,2002:set', {
   construct: constructYamlSet
 });
 
-var _default = core.extend({
+var _default = js_yaml_core.extend({
   implicit: [
     timestamp,
     js_yaml_merge
@@ -46072,7 +46072,7 @@ var Type                = type;
 var Schema              = schema;
 var FAILSAFE_SCHEMA     = failsafe;
 var JSON_SCHEMA         = json;
-var CORE_SCHEMA         = core;
+var CORE_SCHEMA         = js_yaml_core;
 var DEFAULT_SCHEMA      = _default;
 var load                = loader.load;
 var loadAll             = loader.loadAll;
@@ -46138,6 +46138,8 @@ const REACTION_TYPES = [
     'rocket',
     'eyes'
 ];
+const COMMENT_BODY_MAX_LENGTH = 65536;
+const TRUNCATE_WARNING = '...*[Comment body truncated]*';
 class SafeTemplateLoader extends (nunjucks_default()).Loader {
     searchPath;
     realSearchPath;
@@ -46184,9 +46186,11 @@ function getInputs(actionsCore = core_namespaceObject) {
         commentId: actionsCore.getInput('comment-id'),
         body: actionsCore.getInput('body'),
         editMode: actionsCore.getInput('edit-mode'),
+        appendSeparator: actionsCore.getInput('append-separator'),
         vars: actionsCore.getInput('vars'),
         file: actionsCore.getInput('file'),
-        reactions
+        reactions,
+        reactionsEditMode: actionsCore.getInput('reactions-edit-mode')
     };
 }
 function sanitizeInputs(inputs) {
@@ -46255,10 +46259,16 @@ async function renderComment(file, vars) {
 function isReactionType(reaction) {
     return REACTION_TYPES.includes(reaction);
 }
+function isAppendSeparator(separator) {
+    return ['newline', 'none', 'space'].includes(separator);
+}
+function isReactionsEditMode(mode) {
+    return ['append', 'replace'].includes(mode);
+}
 function validReactions(reactions, actionsCore = core_namespaceObject) {
     return [
         ...new Set(reactions
-            .split(',')
+            .split(/[\n,]+/)
             .map(item => item.trim())
             .filter(Boolean)
             .filter((item) => {
@@ -46270,12 +46280,7 @@ function validReactions(reactions, actionsCore = core_namespaceObject) {
         }))
     ];
 }
-async function addReactions(octokit, repo, commentId, reactions, actionsCore = core_namespaceObject) {
-    const reactionSet = validReactions(reactions, actionsCore);
-    if (reactionSet.length === 0) {
-        actionsCore.setFailed(`No valid reactions are contained in '${reactions}'.`);
-        return false;
-    }
+async function addReactionSet(octokit, repo, commentId, reactionSet, actionsCore = core_namespaceObject) {
     const results = await Promise.allSettled(reactionSet.map(async (item) => {
         await octokit.rest.reactions.createForIssueComment({
             owner: repo.owner,
@@ -46306,6 +46311,117 @@ async function addReactions(octokit, repo, commentId, reactions, actionsCore = c
     }
     return true;
 }
+async function addReactions(octokit, repo, commentId, reactions, actionsCore = core) {
+    const reactionSet = validReactions(reactions, actionsCore);
+    if (reactionSet.length === 0) {
+        actionsCore.setFailed(`No valid reactions are contained in '${reactions}'.`);
+        return false;
+    }
+    return addReactionSet(octokit, repo, commentId, reactionSet, actionsCore);
+}
+async function removeReactions(octokit, repo, commentId, reactions, actionsCore = core_namespaceObject) {
+    const results = await Promise.allSettled(reactions.map(async (reaction) => {
+        await octokit.rest.reactions.deleteForIssueComment({
+            owner: repo.owner,
+            repo: repo.repo,
+            comment_id: commentId,
+            reaction_id: reaction.id
+        });
+        actionsCore.info(`Removing '${reaction.content}' reaction from comment.`);
+    }));
+    let hasFailure = false;
+    for (let i = 0, l = results.length; i < l; i++) {
+        const result = results[i];
+        const reaction = reactions[i];
+        if (!result || !reaction) {
+            continue;
+        }
+        if (result.status === 'fulfilled') {
+            actionsCore.info(`Removed reaction '${reaction.content}' from comment id '${commentId}'.`);
+        }
+        else {
+            hasFailure = true;
+            actionsCore.error(`Removing reaction '${reaction.content}' from comment id '${commentId}' failed with ${result.reason}.`);
+        }
+    }
+    if (hasFailure) {
+        actionsCore.setFailed('Failed to remove one or more reactions.');
+        return false;
+    }
+    return true;
+}
+function getErrorMessage(error) {
+    return error instanceof Error ? error.message : String(error);
+}
+async function getAuthenticatedUser(octokit) {
+    try {
+        const { data: user } = await octokit.rest.users.getAuthenticated();
+        return user.login;
+    }
+    catch (error) {
+        if (getErrorMessage(error).includes('Resource not accessible by integration')) {
+            return 'github-actions[bot]';
+        }
+        throw error;
+    }
+}
+async function getCommentReactionsForUser(octokit, repo, commentId, user) {
+    const userReactions = [];
+    const options = {
+        owner: repo.owner,
+        repo: repo.repo,
+        comment_id: commentId,
+        per_page: 100
+    };
+    if (octokit.paginate?.iterator) {
+        for await (const { data: reactions } of octokit.paginate.iterator(octokit.rest.reactions.listForIssueComment, options)) {
+            userReactions.push(...reactions.filter(reaction => reaction.user?.login === user));
+        }
+        return userReactions;
+    }
+    const { data: reactions } = await octokit.rest.reactions.listForIssueComment(options);
+    return reactions.filter(reaction => reaction.user?.login === user);
+}
+async function replaceReactions(octokit, repo, commentId, reactionSet, actionsCore = core_namespaceObject) {
+    const authenticatedUser = await getAuthenticatedUser(octokit);
+    const userReactions = await getCommentReactionsForUser(octokit, repo, commentId, authenticatedUser);
+    if (userReactions.length > 0) {
+        const removed = await removeReactions(octokit, repo, commentId, userReactions, actionsCore);
+        if (!removed) {
+            return false;
+        }
+    }
+    return addReactionSet(octokit, repo, commentId, reactionSet, actionsCore);
+}
+async function applyReactions(octokit, repo, commentId, reactions, reactionsEditMode, actionsCore = core_namespaceObject) {
+    const reactionSet = validReactions(reactions, actionsCore);
+    if (reactionSet.length === 0) {
+        actionsCore.setFailed(`No valid reactions are contained in '${reactions}'.`);
+        return false;
+    }
+    if (reactionsEditMode === 'replace') {
+        return replaceReactions(octokit, repo, commentId, reactionSet, actionsCore);
+    }
+    return addReactionSet(octokit, repo, commentId, reactionSet, actionsCore);
+}
+function appendSeparatorTo(body, separator) {
+    switch (separator) {
+        case 'newline':
+            return `${body}\n`;
+        case 'space':
+            return `${body} `;
+        default:
+            return body;
+    }
+}
+function truncateBody(body, actionsCore = core_namespaceObject) {
+    if (body.length <= COMMENT_BODY_MAX_LENGTH) {
+        return body;
+    }
+    actionsCore.warning(`Comment body is too long. Truncating to ${COMMENT_BODY_MAX_LENGTH} characters.`);
+    return (body.substring(0, COMMENT_BODY_MAX_LENGTH - TRUNCATE_WARNING.length) +
+        TRUNCATE_WARNING);
+}
 async function resolveBody(inputs) {
     if (inputs.vars && !inputs.file) {
         throw new Error("The 'file' input must be provided if 'vars' is used");
@@ -46334,9 +46450,9 @@ async function updateExistingComment(octokit, repo, inputs, body, actionsCore) {
                 repo: repo.repo,
                 comment_id: inputs.commentId
             });
-            commentBody = `${comment.body || ''}\n`;
+            commentBody = appendSeparatorTo(comment.body || '', inputs.appendSeparator);
         }
-        commentBody = commentBody + body;
+        commentBody = truncateBody(commentBody + body, actionsCore);
         actionsCore.debug(`Comment body: ${commentBody}`);
         await octokit.rest.issues.updateComment({
             owner: repo.owner,
@@ -46348,7 +46464,7 @@ async function updateExistingComment(octokit, repo, inputs, body, actionsCore) {
         actionsCore.setOutput('comment-id', inputs.commentId);
     }
     if (inputs.reactions) {
-        await addReactions(octokit, repo, inputs.commentId, inputs.reactions, actionsCore);
+        await applyReactions(octokit, repo, inputs.commentId, inputs.reactions, inputs.reactionsEditMode, actionsCore);
     }
 }
 async function createComment(octokit, repo, inputs, body, actionsCore) {
@@ -46360,16 +46476,13 @@ async function createComment(octokit, repo, inputs, body, actionsCore) {
         owner: repo.owner,
         repo: repo.repo,
         issue_number: inputs.issueNumber,
-        body
+        body: truncateBody(body, actionsCore)
     });
     actionsCore.info(`Created comment id '${comment.id}' on issue '${inputs.issueNumber}'`);
     actionsCore.setOutput('comment-id', comment.id);
     if (inputs.reactions) {
-        await addReactions(octokit, repo, comment.id, inputs.reactions, actionsCore);
+        await applyReactions(octokit, repo, comment.id, inputs.reactions, inputs.reactionsEditMode, actionsCore);
     }
-}
-function getErrorMessage(error) {
-    return error instanceof Error ? error.message : String(error);
 }
 async function run({ actionsCore = core_namespaceObject, githubClient = github_namespaceObject, env = process.env } = {}) {
     try {
@@ -46387,6 +46500,18 @@ async function run({ actionsCore = core_namespaceObject, githubClient = github_n
         actionsCore.debug(`editMode: ${inputs.editMode}`);
         if (!['append', 'replace'].includes(inputs.editMode)) {
             actionsCore.setFailed(`Invalid edit-mode '${inputs.editMode}'`);
+            return;
+        }
+        inputs.appendSeparator = inputs.appendSeparator || 'newline';
+        actionsCore.debug(`appendSeparator: ${inputs.appendSeparator}`);
+        if (!isAppendSeparator(inputs.appendSeparator)) {
+            actionsCore.setFailed(`Invalid append-separator '${inputs.appendSeparator}'`);
+            return;
+        }
+        inputs.reactionsEditMode = inputs.reactionsEditMode || 'append';
+        actionsCore.debug(`reactionsEditMode: ${inputs.reactionsEditMode}`);
+        if (!isReactionsEditMode(inputs.reactionsEditMode)) {
+            actionsCore.setFailed(`Invalid reactions-edit-mode '${inputs.reactionsEditMode}'`);
             return;
         }
         const body = await resolveBody(inputs);
