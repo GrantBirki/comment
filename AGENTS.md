@@ -4,7 +4,7 @@ Guidance for agents and maintainers working in this repository.
 
 ## Project Overview
 
-`comment` is a JavaScript GitHub Action for creating, updating, and reacting to
+`comment` is a TypeScript GitHub Action for creating, updating, and reacting to
 GitHub issue and pull request comments. It is intended to be used from GitHub
 Actions workflows as `GrantBirki/comment@vX.X.X`.
 
@@ -29,14 +29,16 @@ committing `dist/`.
 - `action.yml` - GitHub Action metadata, inputs, outputs, branding, and Node
   runtime. The action currently runs with `using: node24` and points to
   `dist/index.js`.
-- `src/main.js` - Minimal entrypoint that imports and invokes `run()` from
-  `src/comment.js`.
-- `src/comment.js` - Main implementation. This file owns input parsing,
+- `src/main.ts` - Minimal entrypoint that imports and awaits `run()` from
+  `src/comment.ts`.
+- `src/comment.ts` - Main implementation. This file owns input parsing,
   repository and issue resolution, body/template rendering, comment creation,
   comment updates, reaction validation, and GitHub API calls.
-- `test/comment.test.js` - Node test runner unit tests. These tests mock
+- `test/comment.test.ts` - Node test runner unit tests. These tests mock
   `@actions/core`, the GitHub client, and Octokit calls so most behavior can be
   tested without network access.
+- `tsconfig.json` - Strict TypeScript configuration used by `npm run
+  typecheck`.
 - `dist/` - Bundled runtime produced by `ncc`. Do not edit this directory by
   hand.
 - `demo/` - Example templates and sample workflow material used by the README
@@ -54,12 +56,12 @@ The runtime path is intentionally small:
 
 1. GitHub Actions loads `action.yml`.
 2. `action.yml` runs `dist/index.js`.
-3. `dist/index.js` is generated from `src/main.js`.
-4. `src/main.js` calls `run()` from `src/comment.js`.
+3. `dist/index.js` is generated from `src/main.ts`.
+4. `src/main.ts` awaits `run()` from `src/comment.ts`.
 5. `run()` reads inputs, validates local state, resolves the body, creates an
    authenticated Octokit client, then either creates or updates a comment.
 
-Important functions in `src/comment.js`:
+Important functions in `src/comment.ts`:
 
 - `getInputs()` reads action inputs via `@actions/core`. The deprecated
   `reaction-type` input is still supported as a fallback when `reactions` is not
@@ -150,6 +152,7 @@ Common commands:
 ```bash
 npm test
 npm run lint
+npm run typecheck
 npm run format-check
 npm run format
 npm run package
@@ -159,15 +162,18 @@ npm run all
 
 What the commands do:
 
-- `npm test` runs `node --test --experimental-test-coverage test/*.test.js`.
+- `npm test` runs `node --import tsx --test --experimental-test-coverage
+  test/*.test.ts`.
 - `npm run ci-test` currently aliases `npm test`.
 - `npm run lint` runs ESLint over `src` and `test`.
-- `npm run format-check` checks JavaScript formatting with Prettier.
-- `npm run format` rewrites JavaScript formatting with Prettier.
-- `npm run package` runs `ncc build src/main.js -o dist --source-map --license
+- `npm run typecheck` runs `tsc --noEmit`.
+- `npm run format-check` checks JavaScript and TypeScript formatting with
+  Prettier.
+- `npm run format` rewrites JavaScript and TypeScript formatting with Prettier.
+- `npm run package` runs `ncc build src/main.ts -o dist --source-map --license
   licenses.txt`. It sets `NODE_OPTIONS=--openssl-legacy-provider`.
 - `npm run bundle` runs `format` and then `package`.
-- `npm run all` runs `format`, `lint`, `test`, and `package`.
+- `npm run all` runs `format`, `typecheck`, `lint`, `test`, and `package`.
 
 Prettier and ESLint intentionally ignore `dist/`, `lib/`, and `node_modules/`.
 Generated bundles are verified by rebuilding, not formatted directly.
@@ -176,11 +182,11 @@ Generated bundles are verified by rebuilding, not formatted directly.
 
 Use this process for runtime changes:
 
-1. Edit `src/comment.js` or `src/main.js`.
-2. Add or update focused tests in `test/comment.test.js`.
+1. Edit `src/comment.ts` or `src/main.ts`.
+2. Add or update focused tests in `test/comment.test.ts`.
 3. Run `npm test`.
-4. Run `npm run lint` and `npm run format-check`, or run `npm run all` when a
-   full local pass is appropriate.
+4. Run `npm run typecheck`, `npm run lint`, and `npm run format-check`, or run
+   `npm run all` when a full local pass is appropriate.
 5. Rebuild `dist/` with `npm run package` or `npm run bundle`.
 6. Inspect the diff and confirm both source and generated `dist/` changes are
    intentional.
@@ -193,7 +199,7 @@ When adding a new input or output:
 
 1. Update `action.yml`.
 2. Update `README.md` input/output documentation and examples where relevant.
-3. Update `src/comment.js` input parsing and behavior.
+3. Update `src/comment.ts` input parsing and behavior.
 4. Add tests for the new contract.
 5. Rebuild `dist/`.
 
@@ -218,7 +224,7 @@ The unit tests are the primary fast feedback path. They cover:
 - Early validation failures before constructing an Octokit client.
 - The special README hint for `Resource not accessible by integration`.
 
-Test helpers in `test/comment.test.js` include:
+Test helpers in `test/comment.test.ts` include:
 
 - `makeCore()` for mocked `@actions/core` behavior and call recording.
 - `makeOctokit()` for mocked GitHub REST calls.
@@ -282,7 +288,7 @@ with user-facing impact.
 `README.md` is the public contract for action users. Keep it aligned with:
 
 - `action.yml` input names, defaults, required fields, and outputs.
-- Actual behavior in `src/comment.js`.
+- Actual behavior in `src/comment.ts`.
 - Demo files in `demo/`.
 - Permission requirements in workflows that use this action.
 
@@ -358,6 +364,7 @@ For source changes:
 
 ```bash
 npm ci
+npm run typecheck
 npm test
 npm run lint
 npm run format-check
