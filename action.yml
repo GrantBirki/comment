@@ -43,5 +43,5 @@ runs:
   using: 'node24'
   main: 'dist/index.js'
 branding:
-  icon: 'message-square'  
+  icon: 'message-square'
   color: 'gray-dark'

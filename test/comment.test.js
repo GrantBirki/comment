@@ -278,6 +278,10 @@ test('sanitizeInputs masks the token before debug logging', () => {
     token: '[secure]',
     body: 'hello'
   })
+  assert.deepEqual(sanitizeInputs({token: '', body: 'hello'}), {
+    token: '',
+    body: 'hello'
+  })
 })
 
 test('validReactions trims, filters, and de-duplicates reaction inputs', () => {
