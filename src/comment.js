@@ -1,10 +1,10 @@
-const {inspect} = require('util')
-const fs = require('fs')
-const path = require('path')
-const core = require('@actions/core')
-const github = require('@actions/github')
-const nunjucks = require('nunjucks')
-const yaml = require('js-yaml')
+import {inspect} from 'node:util'
+import fs from 'node:fs'
+import path from 'node:path'
+import * as core from '@actions/core'
+import * as github from '@actions/github'
+import nunjucks from 'nunjucks'
+import yaml from 'js-yaml'
 
 const REACTION_TYPES = [
   '+1',
@@ -371,7 +371,7 @@ async function run({
   }
 }
 
-module.exports = {
+export {
   REACTION_TYPES,
   SafeTemplateLoader,
   addReactions,
