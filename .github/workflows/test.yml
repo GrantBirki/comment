@@ -1,15 +1,17 @@
-name: lint
+name: test
+
 on:
-  pull_request:
   push:
     branches:
       - main
+  pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  lint:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # pin@v6
@@ -23,7 +25,5 @@ jobs:
       - name: install dependencies
         run: npm ci
 
-      - name: lint
-        run: |
-          npm run format-check
-          npm run lint
+      - name: run tests
+        run: npm test

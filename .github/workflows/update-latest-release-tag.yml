@@ -20,7 +20,7 @@ jobs:
   tag:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # pin@v6
         with:
           fetch-depth: 0
 
@@ -29,8 +29,33 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
 
+      - name: validate inputs
+        env:
+          MAJOR_VERSION_TAG: ${{ github.event.inputs.major_version_tag }}
+          SOURCE_TAG: ${{ github.event.inputs.source_tag }}
+        run: |
+          if ! printf '%s\n' "${MAJOR_VERSION_TAG}" | grep -Eq '^v[0-9]+$'; then
+            echo "::error::major_version_tag must look like v8"
+            exit 1
+          fi
+
+          if ! printf '%s\n' "${SOURCE_TAG}" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._/-]*$'; then
+            echo "::error::source_tag contains unsupported characters"
+            exit 1
+          fi
+
+          if ! git check-ref-format --allow-onelevel "${SOURCE_TAG}"; then
+            echo "::error::source_tag is not a valid ref name"
+            exit 1
+          fi
+
       - name: tag new target
-        run: git tag -f ${{ github.event.inputs.major_version_tag }} ${{ github.event.inputs.source_tag }}
+        env:
+          MAJOR_VERSION_TAG: ${{ github.event.inputs.major_version_tag }}
+          SOURCE_TAG: ${{ github.event.inputs.source_tag }}
+        run: git tag -f "${MAJOR_VERSION_TAG}" "${SOURCE_TAG}"
 
       - name: push new tag
-        run: git push origin ${{ github.event.inputs.major_version_tag }} --force
+        env:
+          MAJOR_VERSION_TAG: ${{ github.event.inputs.major_version_tag }}
+        run: git push origin "refs/tags/${MAJOR_VERSION_TAG}" --force
