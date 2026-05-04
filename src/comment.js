@@ -1,4 +1,5 @@
 const {inspect} = require('util')
+const fs = require('fs')
 const path = require('path')
 const core = require('@actions/core')
 const github = require('@actions/github')
@@ -15,6 +16,52 @@ const REACTION_TYPES = [
   'rocket',
   'eyes'
 ]
+
+class SafeTemplateLoader extends nunjucks.Loader {
+  constructor(searchPath) {
+    super()
+    this.searchPath = path.resolve(searchPath)
+    this.realSearchPath = fs.existsSync(this.searchPath)
+      ? fs.realpathSync(this.searchPath)
+      : null
+    this.noCache = true
+  }
+
+  getSource(name) {
+    if (!this.realSearchPath) {
+      return null
+    }
+
+    const fullPath = path.resolve(this.searchPath, name)
+    const relativePath = path.relative(this.searchPath, fullPath)
+
+    if (
+      relativePath.startsWith('..') ||
+      path.isAbsolute(relativePath) ||
+      !fs.existsSync(fullPath)
+    ) {
+      return null
+    }
+
+    const realFullPath = fs.realpathSync(fullPath)
+    const realRelativePath = path.relative(this.realSearchPath, realFullPath)
+    const stats = fs.statSync(realFullPath)
+
+    if (
+      realRelativePath.startsWith('..') ||
+      path.isAbsolute(realRelativePath) ||
+      !stats.isFile()
+    ) {
+      return null
+    }
+
+    return {
+      src: fs.readFileSync(realFullPath, 'utf8'),
+      path: realFullPath,
+      noCache: this.noCache
+    }
+  }
+}
 
 function getInputs(actionsCore = core) {
   const reactions =
@@ -112,13 +159,13 @@ function parseVars(vars) {
 async function renderComment(file, vars) {
   const yamlVars = parseVars(vars)
   const resolvedFile = path.resolve(file)
+  const templateDirectory = path.dirname(resolvedFile)
+  const templateName = path.basename(resolvedFile)
   const environment = new nunjucks.Environment(
-    new nunjucks.FileSystemLoader(path.parse(resolvedFile).root, {
-      noCache: true
-    }),
+    new SafeTemplateLoader(templateDirectory),
     {autoescape: true}
   )
-  return environment.render(resolvedFile, yamlVars)
+  return environment.render(templateName, yamlVars)
 }
 
 function validReactions(reactions, actionsCore = core) {
@@ -326,6 +373,7 @@ async function run({
 
 module.exports = {
   REACTION_TYPES,
+  SafeTemplateLoader,
   addReactions,
   createComment,
   getInputs,

@@ -6,6 +6,7 @@ const test = require('node:test')
 
 const {
   addReactions,
+  getInputs,
   parseVars,
   renderComment,
   resolveIssueNumber,
@@ -111,15 +112,65 @@ function writeTemplate(contents) {
   return file
 }
 
+function writeTemplates(files) {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'comment-action-'))
+  for (const [name, contents] of Object.entries(files)) {
+    fs.writeFileSync(path.join(directory, name), contents)
+  }
+  return {
+    directory,
+    file: path.join(directory, 'template.md')
+  }
+}
+
+test('getInputs prefers reactions over deprecated reaction-type', () => {
+  assert.deepEqual(
+    getInputs(
+      makeCore({
+        body: 'hello',
+        reactions: 'eyes',
+        'reaction-type': 'rocket',
+        repository: 'owner/repo',
+        token: 'token'
+      })
+    ),
+    {
+      token: 'token',
+      repository: 'owner/repo',
+      issueNumber: '',
+      commentId: '',
+      body: 'hello',
+      editMode: '',
+      vars: '',
+      file: '',
+      reactions: 'eyes'
+    }
+  )
+
+  assert.equal(
+    getInputs(makeCore({'reaction-type': 'rocket'})).reactions,
+    'rocket'
+  )
+})
+
 test('parseVars accepts only YAML mappings', () => {
   assert.deepEqual(parseVars('app: cool-app\nenvironment: production'), {
     app: 'cool-app',
     environment: 'production'
   })
+  assert.deepEqual(parseVars('count: 3\nenabled: true\nitems:\n  - a\n  - b'), {
+    count: 3,
+    enabled: true,
+    items: ['a', 'b']
+  })
   assert.deepEqual(parseVars(''), {})
   assert.deepEqual(parseVars('---\n'), {})
   assert.throws(() => parseVars('- app'), /YAML mapping/)
   assert.throws(() => parseVars('hello'), /YAML mapping/)
+  assert.throws(
+    () => parseVars('a: 1\n---\nb: 2'),
+    /expected a single document/
+  )
 })
 
 test('renderComment renders a template with escaped variables', async () => {
@@ -129,6 +180,66 @@ test('renderComment renders a template with escaped variables', async () => {
     await renderComment(file, 'name: Ada\nunsafe: "<script>"'),
     'Hello Ada &lt;script&gt;'
   )
+})
+
+test('renderComment supports same-directory includes without broad filesystem access', async () => {
+  const {file} = writeTemplates({
+    'template.md': 'Hello {% include "partial.md" %}',
+    'partial.md': '{{ name }}'
+  })
+
+  assert.equal(await renderComment(file, 'name: Ada'), 'Hello Ada')
+})
+
+test('renderComment rejects includes outside the template directory', async () => {
+  const outsideDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'outside-'))
+  const outsideFile = path.join(outsideDirectory, 'secret.md')
+  fs.writeFileSync(outsideFile, 'should not render')
+  const {file} = writeTemplates({
+    'template.md': `Hello {% include "${outsideFile}" %}`
+  })
+
+  await assert.rejects(() => renderComment(file, ''), /template not found/)
+})
+
+test('renderComment rejects traversal to sibling paths with shared prefixes', async () => {
+  const parentDirectory = fs.mkdtempSync(
+    path.join(os.tmpdir(), 'comment-safe-')
+  )
+  const templateDirectory = path.join(parentDirectory, 'templates')
+  const siblingDirectory = path.join(parentDirectory, 'templates-secret')
+  fs.mkdirSync(templateDirectory)
+  fs.mkdirSync(siblingDirectory)
+  fs.writeFileSync(
+    path.join(siblingDirectory, 'secret.md'),
+    'should not render'
+  )
+  const file = path.join(templateDirectory, 'template.md')
+  fs.writeFileSync(file, 'Hello {% include "../templates-secret/secret.md" %}')
+
+  await assert.rejects(() => renderComment(file, ''), /template not found/)
+})
+
+test('renderComment rejects symlinks outside the template directory', async () => {
+  const outsideDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'outside-'))
+  const outsideFile = path.join(outsideDirectory, 'secret.md')
+  fs.writeFileSync(outsideFile, 'should not render')
+  const {directory, file} = writeTemplates({
+    'template.md': 'Hello {% include "linked-secret.md" %}'
+  })
+  fs.symlinkSync(outsideFile, path.join(directory, 'linked-secret.md'))
+
+  await assert.rejects(() => renderComment(file, ''), /template not found/)
+})
+
+test('renderComment rejects templates from missing directories', async () => {
+  const file = path.join(
+    os.tmpdir(),
+    `comment-missing-${process.pid}`,
+    'template.md'
+  )
+
+  await assert.rejects(() => renderComment(file, ''), /template not found/)
 })
 
 test('resolveIssueNumber supports explicit input and event fallbacks', () => {
@@ -362,6 +473,24 @@ test('run adds reactions when creating a new comment', async () => {
   ])
 })
 
+test('run supports deprecated reaction-type when reactions is not set', async () => {
+  const core = makeCore({
+    body: 'hello',
+    'issue-number': '1',
+    'reaction-type': 'rocket',
+    repository: 'owner/repo',
+    token: 'token'
+  })
+  const octokit = makeOctokit({createId: 456})
+  const githubClient = makeGithubClient(octokit)
+
+  await run({actionsCore: core, githubClient})
+
+  assert.deepEqual(octokit.calls.reactions, [
+    {owner: 'owner', repo: 'repo', comment_id: 456, content: 'rocket'}
+  ])
+})
+
 test('run rejects empty updates to an existing comment', async () => {
   const core = makeCore({
     'comment-id': '99',
@@ -466,6 +595,40 @@ test('run rejects missing issue and comment identifiers before calling GitHub', 
   assert.deepEqual(core.calls.failed, [
     "Missing either 'issue-number' or 'comment-id'"
   ])
+  assert.equal(githubClient.calls.getOctokit.length, 0)
+})
+
+test('run rejects invalid repository names before calling GitHub', async () => {
+  const core = makeCore({
+    body: 'hello',
+    'issue-number': '1',
+    repository: 'owner/repo/extra',
+    token: 'token'
+  })
+  const octokit = makeOctokit()
+  const githubClient = makeGithubClient(octokit)
+
+  await run({actionsCore: core, githubClient})
+
+  assert.deepEqual(core.calls.failed, [
+    "Invalid repository 'owner/repo/extra'. Expected 'owner/repo'."
+  ])
+  assert.equal(githubClient.calls.getOctokit.length, 0)
+})
+
+test('run rejects template rendering failures before calling GitHub', async () => {
+  const core = makeCore({
+    file: path.join(os.tmpdir(), 'missing-template.md'),
+    'issue-number': '1',
+    repository: 'owner/repo',
+    token: 'token'
+  })
+  const octokit = makeOctokit()
+  const githubClient = makeGithubClient(octokit)
+
+  await run({actionsCore: core, githubClient})
+
+  assert.match(core.calls.failed.join('\n'), /template not found/)
   assert.equal(githubClient.calls.getOctokit.length, 0)
 })
 
