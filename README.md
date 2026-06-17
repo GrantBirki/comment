@@ -231,7 +231,7 @@ You can even pass in GitHub Actions context variables as seen above (ex: `${{ gi
 
 #### Iterating Over Arrays in Templates
 
-This example shows how you can iterate over an array of values and populate a template with them:
+This example shows how you can pass a comma-separated list to a template and iterate over it:
 
 ```yaml
 jobs:
@@ -243,19 +243,12 @@ jobs:
 
       - uses: GrantBirki/comment@vX.X.X
         with:
-          # other config
+          file: .github/comment-template.md
           vars: |
             files: ${{ steps.run.outputs.files }}
-          body: |
-            # Files
-            {% for file in files.split(",") %}
-            - `{{ file }}`
-            {% else %}
-            - No file
-            {% endfor %}
 ```
 
-You can also put the iteration logic in the template file itself rather than using the `body` input in the workflow file:
+The `vars` input can only be used with `file`; inline `body` values are not rendered as Nunjucks templates. Put the iteration logic in `.github/comment-template.md`:
 
 ```markdown
 # Files
