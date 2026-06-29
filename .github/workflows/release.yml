@@ -1,0 +1,163 @@
+name: release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - src/version.ts
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # pin@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: setup node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # pin@v6
+        with:
+          node-version-file: .node-version
+
+      - name: verify protected ref
+        env:
+          REF_PROTECTED: ${{ github.ref_protected }}
+        run: |
+          if [ "${REF_PROTECTED}" != "true" ]; then
+            echo "::error::release workflow must run from a protected ref"
+            exit 1
+          fi
+
+      - name: validate version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          matches="$(sed -nE "s/^export const VERSION = '(v[0-9]+\.[0-9]+\.[0-9]+)' as const$/\1/p" src/version.ts)"
+          match_count="$(printf '%s\n' "${matches}" | sed '/^$/d' | wc -l | tr -d ' ')"
+
+          if [ "${match_count}" -ne 1 ]; then
+            echo "::error::src/version.ts must export exactly one VERSION in vX.Y.Z format"
+            exit 1
+          fi
+
+          version="${matches}"
+          major="${version%%.*}"
+          tag_exists=false
+
+          if git rev-parse -q --verify "refs/tags/${version}" >/dev/null; then
+            tag_exists=true
+            tag_target="$(git rev-list -n 1 "${version}")"
+            if [ "${tag_target}" != "${GITHUB_SHA}" ]; then
+              echo "::error::tag ${version} already exists and does not point to ${GITHUB_SHA}"
+              exit 1
+            fi
+          fi
+
+          latest="$({ git tag --list 'v[0-9]*.[0-9]*.[0-9]*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1; } || true)"
+          if [ -n "${latest}" ] && [ "${latest}" != "${version}" ]; then
+            newest="$(printf '%s\n%s\n' "${latest}" "${version}" | sort -V | tail -n 1)"
+            if [ "${newest}" != "${version}" ]; then
+              echo "::error::${version} must be greater than latest release tag ${latest}"
+              exit 1
+            fi
+          fi
+
+          {
+            echo "version=${version}"
+            echo "major=${major}"
+            echo "latest=${latest}"
+            echo "tag-exists=${tag_exists}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: install dependencies
+        run: npm ci
+
+      - name: typecheck
+        run: npm run typecheck
+
+      - name: test
+        run: npm test
+
+      - name: rebuild dist
+        run: npm run package
+
+      - name: verify dist is committed
+        run: |
+          if ! git diff --quiet -- dist/; then
+            echo "::error::dist/ is not up to date with the committed source"
+            git diff -- dist/
+            exit 1
+          fi
+
+      - name: create release tag
+        id: release-tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_EXISTS: ${{ steps.version.outputs.tag-exists }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          if [ "${TAG_EXISTS}" = "true" ]; then
+            tag_sha="$(git rev-parse "refs/tags/${VERSION}")"
+          else
+            tag_sha="$(gh api \
+              --method POST \
+              "repos/${GITHUB_REPOSITORY}/git/tags" \
+              -f tag="${VERSION}" \
+              -f message="${VERSION} Release" \
+              -f object="${GITHUB_SHA}" \
+              -f type=commit \
+              --jq .sha)"
+
+            gh api \
+              --method POST \
+              "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f ref="refs/tags/${VERSION}" \
+              -f sha="${tag_sha}"
+          fi
+
+          echo "tag-sha=${tag_sha}" >> "${GITHUB_OUTPUT}"
+
+      - name: create github release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if gh release view "${VERSION}" >/dev/null 2>&1; then
+            echo "Release ${VERSION} already exists."
+          else
+            gh release create "${VERSION}" --title "${VERSION}" --target "${GITHUB_SHA}" --generate-notes
+          fi
+
+      - name: update major version tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MAJOR: ${{ steps.version.outputs.major }}
+          TAG_SHA: ${{ steps.release-tag.outputs.tag-sha }}
+        run: |
+          set -euo pipefail
+
+          if ! gh api \
+            --method PATCH \
+            "repos/${GITHUB_REPOSITORY}/git/refs/tags/${MAJOR}" \
+            -f sha="${TAG_SHA}" \
+            -F force=true; then
+            gh api \
+              --method POST \
+              "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f ref="refs/tags/${MAJOR}" \
+              -f sha="${TAG_SHA}"
+          fi

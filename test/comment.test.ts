@@ -4,6 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
 
+import {VERSION} from '../src/version.js'
 import {
   LocalActionsCore,
   addReactions,
@@ -232,6 +233,10 @@ function captureStdout(fn: () => void): string {
 
   return output
 }
+
+test('VERSION uses a stable release tag format', () => {
+  assert.match(VERSION, /^v[0-9]+\.[0-9]+\.[0-9]+$/)
+})
 
 test('getInputs prefers reactions over deprecated reaction-type', () => {
   assert.deepEqual(
@@ -674,6 +679,7 @@ test('run creates a rendered comment with pull request fallback metadata', async
     env: {GITHUB_REPOSITORY: 'owner/repo'}
   })
 
+  assert.equal(core.calls.info[0], `comment-action version: ${VERSION}`)
   assert.deepEqual(octokit.calls.createComment, [
     {
       owner: 'owner',

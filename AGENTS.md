@@ -34,6 +34,8 @@ committing `dist/`.
 - `src/comment.ts` - Main implementation. This file owns input parsing,
   repository and issue resolution, body/template rendering, comment creation,
   comment updates, reaction validation, and GitHub API calls.
+- `src/version.ts` - Canonical action release version. Bumping this file on
+  `main` triggers the automated release workflow.
 - `test/comment.test.ts` - Node test runner unit tests. These tests mock the
   local actions-core interface, GitHub client, and REST calls so most behavior
   can be tested without network access.
@@ -43,10 +45,8 @@ committing `dist/`.
   hand.
 - `demo/` - Example templates and sample workflow material used by the README
   and acceptance workflow.
-- `.github/workflows/` - CI, package verification, acceptance, and release-tag
-  maintenance workflows.
-- `script/release` - Interactive helper for creating and pushing annotated
-  release tags.
+- `.github/workflows/` - CI, package verification, acceptance, and automated
+  release workflows.
 - `README.md` - User-facing action documentation.
 - `CONTRIBUTING.md` - Currently only a placeholder.
 
@@ -249,8 +249,9 @@ The CI workflows are intentionally separated:
   tests deprecated `reaction-type`, validates template rendering, checks append
   and replace modes, checks reaction-only updates, and confirms invalid-only
   reactions fail.
-- `.github/workflows/update-latest-release-tag.yml` is manually dispatched to
-  move a major release tag such as `v1` to a source tag such as `v1.2.3`.
+- `.github/workflows/release.yml` runs on pushes to `main` that change
+  `src/version.ts`. It validates the committed bundle, creates the immutable
+  release tag, creates a GitHub release, and moves the matching major tag.
 
 When changing workflows, follow the pattern used here and in
 `/Users/birki/code/branch-deploy`: clear job names, explicit permissions,
@@ -263,25 +264,17 @@ This project uses semver-style release tags such as `v1.2.3`.
 
 High-level release flow:
 
-1. Merge the code change with source, tests, docs, and `dist/` updated.
-2. Create and push an annotated version tag. The local helper is:
+1. Update `src/version.ts` to the next stable `vX.Y.Z` version.
+2. Make the source, tests, docs, and `dist/` changes for the release in the
+   same pull request.
+3. Merge the pull request to protected `main`.
+4. Let `.github/workflows/release.yml` validate the bundle, create the
+   immutable release tag, create the GitHub release with generated notes, and
+   move the matching major tag such as `v3`.
 
-   ```bash
-   script/release
-   ```
-
-3. Create or update the GitHub release for the new version tag.
-4. Test the release as needed.
-5. Run the `Update Latest Release Tag` workflow to move the matching major tag
-   such as `v1` to the new version tag.
-
-`script/release` is interactive and pushes tags. Verify the requested tag before
-confirming it, and prefer an explicit `vX.Y.Z` tag shape.
-
-The `update-latest-release-tag` workflow validates the major tag and source ref,
-then force-updates `refs/tags/<major_version_tag>` to the requested source. This
-is expected for floating major-version tags, but it is still a release operation
-with user-facing impact.
+`src/version.ts` is the only release version source. `package.json` intentionally
+keeps `0.0.0` because this repository is released as a GitHub Action, not an npm
+package.
 
 ## Documentation
 
