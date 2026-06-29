@@ -54,14 +54,19 @@ jobs:
 
           version="${matches}"
           major="${version%%.*}"
+          tag_exists=false
 
           if git rev-parse -q --verify "refs/tags/${version}" >/dev/null; then
-            echo "::error::tag ${version} already exists"
-            exit 1
+            tag_exists=true
+            tag_target="$(git rev-list -n 1 "${version}")"
+            if [ "${tag_target}" != "${GITHUB_SHA}" ]; then
+              echo "::error::tag ${version} already exists and does not point to ${GITHUB_SHA}"
+              exit 1
+            fi
           fi
 
           latest="$({ git tag --list 'v[0-9]*.[0-9]*.[0-9]*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1; } || true)"
-          if [ -n "${latest}" ]; then
+          if [ -n "${latest}" ] && [ "${latest}" != "${version}" ]; then
             newest="$(printf '%s\n%s\n' "${latest}" "${version}" | sort -V | tail -n 1)"
             if [ "${newest}" != "${version}" ]; then
               echo "::error::${version} must be greater than latest release tag ${latest}"
@@ -73,6 +78,7 @@ jobs:
             echo "version=${version}"
             echo "major=${major}"
             echo "latest=${latest}"
+            echo "tag-exists=${tag_exists}"
           } >> "${GITHUB_OUTPUT}"
 
       - name: install dependencies
@@ -99,24 +105,29 @@ jobs:
         id: release-tag
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG_EXISTS: ${{ steps.version.outputs.tag-exists }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
 
-          tag_sha="$(gh api \
-            --method POST \
-            "repos/${GITHUB_REPOSITORY}/git/tags" \
-            -f tag="${VERSION}" \
-            -f message="${VERSION} Release" \
-            -f object="${GITHUB_SHA}" \
-            -f type=commit \
-            --jq .sha)"
+          if [ "${TAG_EXISTS}" = "true" ]; then
+            tag_sha="$(git rev-parse "refs/tags/${VERSION}")"
+          else
+            tag_sha="$(gh api \
+              --method POST \
+              "repos/${GITHUB_REPOSITORY}/git/tags" \
+              -f tag="${VERSION}" \
+              -f message="${VERSION} Release" \
+              -f object="${GITHUB_SHA}" \
+              -f type=commit \
+              --jq .sha)"
 
-          gh api \
-            --method POST \
-            "repos/${GITHUB_REPOSITORY}/git/refs" \
-            -f ref="refs/tags/${VERSION}" \
-            -f sha="${tag_sha}"
+            gh api \
+              --method POST \
+              "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f ref="refs/tags/${VERSION}" \
+              -f sha="${tag_sha}"
+          fi
 
           echo "tag-sha=${tag_sha}" >> "${GITHUB_OUTPUT}"
 
@@ -124,7 +135,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}
-        run: gh release create "${VERSION}" --title "${VERSION}" --target "${GITHUB_SHA}" --generate-notes
+        run: |
+          if gh release view "${VERSION}" >/dev/null 2>&1; then
+            echo "Release ${VERSION} already exists."
+          else
+            gh release create "${VERSION}" --title "${VERSION}" --target "${GITHUB_SHA}" --generate-notes
+          fi
 
       - name: update major version tag
         env:
