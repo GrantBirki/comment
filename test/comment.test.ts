@@ -5,9 +5,13 @@ import path from 'node:path'
 import test from 'node:test'
 
 import {
+  LocalActionsCore,
   addReactions,
   appendSeparatorTo,
+  createGithubClient,
+  getAuthenticatedUser,
   getInputs,
+  getCommentReactionsForUser,
   parseVars,
   renderComment,
   resolveIssueNumber,
@@ -211,6 +215,24 @@ function writeTemplates(files: Record<string, string>): {
   }
 }
 
+function captureStdout(fn: () => void): string {
+  const originalWrite = process.stdout.write
+  let output = ''
+
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    output += String(chunk)
+    return true
+  }) as typeof process.stdout.write
+
+  try {
+    fn()
+  } finally {
+    process.stdout.write = originalWrite
+  }
+
+  return output
+}
+
 test('getInputs prefers reactions over deprecated reaction-type', () => {
   assert.deepEqual(
     getInputs(
@@ -243,6 +265,145 @@ test('getInputs prefers reactions over deprecated reaction-type', () => {
   )
 })
 
+test('LocalActionsCore reads inputs and emits escaped workflow commands', () => {
+  const core = new LocalActionsCore({
+    'INPUT_BODY': '  hello  ',
+    'INPUT_REACTION-TYPE': ' rocket '
+  })
+
+  assert.equal(core.getInput('body'), 'hello')
+  assert.equal(core.getInput('reaction-type'), 'rocket')
+
+  const output = captureStdout(() => {
+    core.debug('line 1\nline 2')
+    core.warning('100%, ok')
+    core.setOutput('comment-id', '123')
+  })
+
+  assert.match(output, /::debug::line 1%0Aline 2/)
+  assert.match(output, /::warning::100%25, ok/)
+  assert.match(output, /::set-output name=comment-id::123/)
+})
+
+test('LocalActionsCore writes multiline outputs to GITHUB_OUTPUT', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'comment-output-'))
+  const outputFile = path.join(directory, 'github-output')
+  const core = new LocalActionsCore({GITHUB_OUTPUT: outputFile})
+
+  core.setOutput('comment-id', 'line 1\nline 2')
+
+  const output = fs.readFileSync(outputFile, 'utf8')
+  assert.match(output, /^comment-id<<comment_/)
+  assert.match(output, /line 1\nline 2/)
+})
+
+test('createGithubClient maps issue comment REST requests', async () => {
+  const originalFetch = globalThis.fetch
+  const calls: {init?: RequestInit; url: string}[] = []
+
+  globalThis.fetch = (async (input, init) => {
+    calls.push({url: String(input), init})
+    return new Response(JSON.stringify({id: 123}), {status: 201})
+  }) as typeof fetch
+
+  try {
+    const octokit = createGithubClient({
+      GITHUB_API_URL: 'https://github.example/api/v3'
+    }).getOctokit('secret-token')
+    const response = await octokit.rest.issues.createComment({
+      owner: 'owner',
+      repo: 'repo',
+      issue_number: 7,
+      body: 'hello'
+    })
+
+    assert.equal(response.data.id, 123)
+    assert.equal(
+      calls[0]?.url,
+      'https://github.example/api/v3/repos/owner/repo/issues/7/comments'
+    )
+    assert.equal(calls[0]?.init?.method, 'POST')
+    assert.deepEqual(JSON.parse(String(calls[0]?.init?.body)), {
+      body: 'hello'
+    })
+    assert.equal(
+      (calls[0]?.init?.headers as Record<string, string>).authorization,
+      'Bearer secret-token'
+    )
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('createGithubClient preserves GitHub error messages for auth fallback', async () => {
+  const originalFetch = globalThis.fetch
+
+  globalThis.fetch = (async () => {
+    return new Response(
+      JSON.stringify({message: 'Resource not accessible by integration'}),
+      {status: 403}
+    )
+  }) as typeof fetch
+
+  try {
+    const octokit = createGithubClient().getOctokit('token')
+    assert.equal(await getAuthenticatedUser(octokit), 'github-actions[bot]')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('createGithubClient paginates comment reactions from Link headers', async () => {
+  const originalFetch = globalThis.fetch
+  const requestedPages: string[] = []
+
+  globalThis.fetch = (async input => {
+    const url = new URL(String(input))
+    const page = url.searchParams.get('page') || '1'
+    requestedPages.push(page)
+
+    if (page === '1') {
+      return new Response(
+        JSON.stringify([
+          {id: 1, content: 'eyes', user: {login: 'github-actions[bot]'}},
+          {id: 2, content: 'rocket', user: {login: 'octocat'}}
+        ]),
+        {
+          status: 200,
+          headers: {
+            link: '<https://api.github.com/reactions?page=2>; rel="next"'
+          }
+        }
+      )
+    }
+
+    return new Response(
+      JSON.stringify([
+        {id: 3, content: 'heart', user: {login: 'github-actions[bot]'}}
+      ]),
+      {status: 200}
+    )
+  }) as typeof fetch
+
+  try {
+    const octokit = createGithubClient().getOctokit('token')
+    const reactions = await getCommentReactionsForUser(
+      octokit,
+      {owner: 'owner', repo: 'repo', repository: 'owner/repo'},
+      99,
+      'github-actions[bot]'
+    )
+
+    assert.deepEqual(
+      reactions.map(reaction => reaction.id),
+      [1, 3]
+    )
+    assert.deepEqual(requestedPages, ['1', '2'])
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
 test('parseVars accepts only YAML mappings', () => {
   assert.deepEqual(parseVars('app: cool-app\nenvironment: production'), {
     app: 'cool-app',
@@ -255,11 +416,23 @@ test('parseVars accepts only YAML mappings', () => {
   })
   assert.deepEqual(parseVars(''), {})
   assert.deepEqual(parseVars('---\n'), {})
+  assert.deepEqual(parseVars('items: [a, b]\nempty: null'), {
+    items: ['a', 'b'],
+    empty: null
+  })
   assert.throws(() => parseVars('- app'), /YAML mapping/)
   assert.throws(() => parseVars('hello'), /YAML mapping/)
   assert.throws(
     () => parseVars('a: 1\n---\nb: 2'),
     /expected a single document/
+  )
+  assert.throws(() => parseVars('base: &base\n  app: cool-app'), /anchors/)
+  assert.throws(() => parseVars('copy: *base'), /aliases/)
+  assert.throws(() => parseVars('<<: *base'), /merge keys|aliases/)
+  assert.throws(() => parseVars('app: !secret value'), /custom YAML tags/)
+  assert.throws(
+    () => parseVars('items:\n  - !secret value'),
+    /custom YAML tags/
   )
 })
 

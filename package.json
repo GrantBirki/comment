@@ -5,15 +5,14 @@
   "type": "module",
   "main": "src/main.ts",
   "scripts": {
-    "format": "prettier --write '**/*.{js,ts}'",
-    "format-check": "prettier --check '**/*.{js,ts}'",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src test",
+    "pretest": "rm -rf tmp/test-build && tsc --outDir tmp/test-build --rootDir .",
+    "posttest": "rm -rf tmp/test-build",
     "package": "NODE_OPTIONS=--openssl-legacy-provider ncc build src/main.ts -o dist --source-map --license licenses.txt",
-    "test": "node --import tsx --test --experimental-test-coverage test/*.test.ts",
+    "test": "node --test --experimental-test-coverage tmp/test-build/test/*.test.js",
     "ci-test": "npm test",
-    "all": "npm run format && npm run typecheck && npm run lint && npm test && npm run package",
-    "bundle": "npm run format && npm run package"
+    "all": "npm run typecheck && npm test && npm run package",
+    "bundle": "npm run package"
   },
   "repository": {
     "type": "git",
@@ -27,24 +26,12 @@
   },
   "homepage": "https://github.com/GrantBirki/comment",
   "dependencies": {
-    "@actions/core": "^3.0.1",
-    "@actions/github": "^9.1.1",
-    "js-yaml": "^4.1.1",
     "nunjucks": "^3.2.4"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@types/js-yaml": "^4.0.9",
     "@types/node": "^25.6.0",
     "@types/nunjucks": "^3.2.6",
     "@vercel/ncc": "^0.38.4",
-    "eslint": "^10.3.0",
-    "prettier": "^3.8.3",
-    "tsx": "^4.22.4",
-    "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.2"
-  },
-  "overrides": {
-    "undici": "6.25.0"
+    "typescript": "^6.0.3"
   }
 }

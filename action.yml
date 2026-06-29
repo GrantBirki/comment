@@ -24,7 +24,7 @@ inputs:
     description: 'The path to a Markdown/template file to use as the comment body'
     required: false
   vars:
-    description: 'Template variables in YAML format for rendering with a provided file'
+    description: 'Template variables in a narrow YAML-compatible mapping format for rendering with a provided file'
     required: false
   edit-mode:
     description: 'The mode when updating a comment, "replace" or "append"'
