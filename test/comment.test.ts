@@ -430,6 +430,10 @@ test('parseVars accepts only YAML mappings', () => {
   assert.throws(() => parseVars('copy: *base'), /aliases/)
   assert.throws(() => parseVars('<<: *base'), /merge keys|aliases/)
   assert.throws(() => parseVars('app: !secret value'), /custom YAML tags/)
+  assert.throws(
+    () => parseVars('items:\n  - !secret value'),
+    /custom YAML tags/
+  )
 })
 
 test('renderComment renders a template with escaped variables', async () => {

@@ -6688,7 +6688,7 @@ function stripComment(line) {
     return line;
 }
 function assertSupportedVarsSyntax(text) {
-    if (/^!/.test(text) || /:\s*!/.test(text)) {
+    if (/^!/.test(text) || /^-\s*!/.test(text) || /:\s*!/.test(text)) {
         throw new Error("The 'vars' input does not support custom YAML tags");
     }
     if (/^\s*<<\s*:/.test(text) || /:\s*<<\s*:/.test(text)) {

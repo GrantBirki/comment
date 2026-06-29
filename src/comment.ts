@@ -602,7 +602,7 @@ function stripComment(line: string): string {
 }
 
 function assertSupportedVarsSyntax(text: string): void {
-  if (/^!/.test(text) || /:\s*!/.test(text)) {
+  if (/^!/.test(text) || /^-\s*!/.test(text) || /:\s*!/.test(text)) {
     throw new Error("The 'vars' input does not support custom YAML tags")
   }
 
