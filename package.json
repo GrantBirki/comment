@@ -29,7 +29,7 @@
     "nunjucks": "^3.2.4"
   },
   "devDependencies": {
-    "@types/node": "^25.6.0",
+    "@types/node": "^25.8.0",
     "@types/nunjucks": "^3.2.6",
     "@vercel/ncc": "^0.38.4",
     "typescript": "^6.0.3"
