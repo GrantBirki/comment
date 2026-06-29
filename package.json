@@ -42,7 +42,7 @@
     "prettier": "^3.8.3",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.2"
+    "typescript-eslint": "^8.59.3"
   },
   "overrides": {
     "undici": "6.25.0"
