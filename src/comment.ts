@@ -5,7 +5,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import nunjucks from 'nunjucks'
 
-import {ACTION_VERSION} from './version.js'
+import {VERSION} from './version.js'
 
 const REACTION_TYPES = [
   '+1',
@@ -1215,7 +1215,7 @@ async function run(options: RunOptions = {}): Promise<void> {
   const env = options.env || process.env
 
   try {
-    actionsCore.info(`comment-action version: ${ACTION_VERSION}`)
+    actionsCore.info(`comment-action version: ${VERSION}`)
     const githubClient = options.githubClient || createGithubClient(env)
     const inputs = getInputs(actionsCore)
     const issueNumberFallback = resolveIssueNumber(

@@ -6370,7 +6370,7 @@ var external_node_path_default = /*#__PURE__*/__nccwpck_require__.n(external_nod
 var nunjucks = __nccwpck_require__(115);
 var nunjucks_default = /*#__PURE__*/__nccwpck_require__.n(nunjucks);
 ;// CONCATENATED MODULE: ./src/version.ts
-const ACTION_VERSION = 'v3.0.1';
+const VERSION = 'v3.0.1';
 
 ;// CONCATENATED MODULE: ./src/comment.ts
 
@@ -7096,7 +7096,7 @@ async function run(options = {}) {
     const actionsCore = options.actionsCore || defaultActionsCore;
     const env = options.env || process.env;
     try {
-        actionsCore.info(`comment-action version: ${ACTION_VERSION}`);
+        actionsCore.info(`comment-action version: ${VERSION}`);
         const githubClient = options.githubClient || createGithubClient(env);
         const inputs = getInputs(actionsCore);
         const issueNumberFallback = resolveIssueNumber(inputs.issueNumber, githubClient.context);
