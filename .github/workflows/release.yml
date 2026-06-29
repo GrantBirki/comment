@@ -1,0 +1,122 @@
+name: release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - src/version.ts
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # pin@v6
+        with:
+          fetch-depth: 0
+
+      - name: setup node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # pin@v6
+        with:
+          node-version-file: .node-version
+          cache: 'npm'
+
+      - name: verify protected ref
+        env:
+          REF_PROTECTED: ${{ github.ref_protected }}
+        run: |
+          if [ "${REF_PROTECTED}" != "true" ]; then
+            echo "::error::release workflow must run from a protected ref"
+            exit 1
+          fi
+
+      - name: validate version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          matches="$(sed -nE "s/^export const ACTION_VERSION = '(v[0-9]+\.[0-9]+\.[0-9]+)' as const$/\1/p" src/version.ts)"
+          match_count="$(printf '%s\n' "${matches}" | sed '/^$/d' | wc -l | tr -d ' ')"
+
+          if [ "${match_count}" -ne 1 ]; then
+            echo "::error::src/version.ts must export exactly one ACTION_VERSION in vX.Y.Z format"
+            exit 1
+          fi
+
+          version="${matches}"
+          major="${version%%.*}"
+
+          if git rev-parse -q --verify "refs/tags/${version}" >/dev/null; then
+            echo "::error::tag ${version} already exists"
+            exit 1
+          fi
+
+          latest="$({ git tag --list 'v[0-9]*.[0-9]*.[0-9]*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1; } || true)"
+          if [ -n "${latest}" ]; then
+            newest="$(printf '%s\n%s\n' "${latest}" "${version}" | sort -V | tail -n 1)"
+            if [ "${newest}" != "${version}" ]; then
+              echo "::error::${version} must be greater than latest release tag ${latest}"
+              exit 1
+            fi
+          fi
+
+          {
+            echo "version=${version}"
+            echo "major=${major}"
+            echo "latest=${latest}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: install dependencies
+        run: npm ci
+
+      - name: typecheck
+        run: npm run typecheck
+
+      - name: test
+        run: npm test
+
+      - name: rebuild dist
+        run: npm run package
+
+      - name: verify dist is committed
+        run: |
+          if ! git diff --quiet -- dist/; then
+            echo "::error::dist/ is not up to date with the committed source"
+            git diff -- dist/
+            exit 1
+          fi
+
+      - name: git config
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
+      - name: create release tag
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git tag -a "${VERSION}" "${GITHUB_SHA}" -m "${VERSION} Release"
+          git push origin "refs/tags/${VERSION}"
+
+      - name: create github release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: gh release create "${VERSION}" --title "${VERSION}" --target "${GITHUB_SHA}" --generate-notes
+
+      - name: update major version tag
+        env:
+          MAJOR: ${{ steps.version.outputs.major }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git tag -f "${MAJOR}" "${VERSION}"
+          git push origin "refs/tags/${MAJOR}" --force
