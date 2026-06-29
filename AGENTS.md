@@ -251,7 +251,8 @@ The CI workflows are intentionally separated:
   reactions fail.
 - `.github/workflows/release.yml` runs on pushes to `main` that change
   `src/version.ts`. It validates the committed bundle, creates the immutable
-  release tag, creates a GitHub release, and moves the matching major tag.
+  release tag, creates provenance attestations, creates a GitHub release, and
+  moves the matching major tag.
 
 When changing workflows, follow the pattern used here and in
 `/Users/birki/code/branch-deploy`: clear job names, explicit permissions,
@@ -269,8 +270,9 @@ High-level release flow:
    same pull request.
 3. Merge the pull request to protected `main`.
 4. Let `.github/workflows/release.yml` validate the bundle, create the
-   immutable release tag, create the GitHub release with generated notes, and
-   move the matching major tag such as `v3`.
+   immutable release tag, create provenance attestations for `action.yml` and
+   `dist/**`, create the GitHub release with generated notes, and move the
+   matching major tag such as `v3`.
 
 `src/version.ts` is the only release version source. `package.json` intentionally
 keeps `0.0.0` because this repository is released as a GitHub Action, not an npm
