@@ -1,6 +1,6 @@
 # Comment Action 💬
 
-[![package-check](https://github.com/GrantBirki/comment/actions/workflows/package-check.yml/badge.svg)](https://github.com/GrantBirki/comment/actions/workflows/package-check.yml) [![lint](https://github.com/GrantBirki/comment/actions/workflows/lint.yml/badge.svg)](https://github.com/GrantBirki/comment/actions/workflows/lint.yml)
+[![package-check](https://github.com/GrantBirki/comment/actions/workflows/package-check.yml/badge.svg)](https://github.com/GrantBirki/comment/actions/workflows/package-check.yml) [![typecheck](https://github.com/GrantBirki/comment/actions/workflows/lint.yml/badge.svg)](https://github.com/GrantBirki/comment/actions/workflows/lint.yml)
 
 GitHub Action to create, update, or add a reaction to any issue or pull request
 
@@ -96,7 +96,7 @@ For more information about **templating**, be sure to check out the [templating]
 | `comment-id` | The id of the comment to update | false |  |
 | `body` | The comment body (string) | false | |
 | `file` | The path to a file to use as a comment body | false | |
-| `vars` | Template variables in yaml format for rendering with a provided file | false | |
+| `vars` | Template variables in a narrow YAML-compatible mapping format for rendering with a provided file | false | |
 | `edit-mode` | The mode when updating a comment, `replace` or `append` | false | `append` |
 | `append-separator` | The separator to use when appending to an existing comment, `newline`, `space`, or `none` | false | `newline` |
 | `reactions` | A comma or newline separated list of reactions to add to the comment (`+1`, `-1`, `laugh`, `confused`, `heart`, `hooray`, `rocket`, `eyes`) | false | |
@@ -198,7 +198,7 @@ There are two ways to leverage templates using this Action:
 - `file` is the path to a markdown file in your repository to load as a template
 - `vars` are template variables to use when rendering your markdown file template
 
-The `vars` input is a yaml string that will be parsed and converted to a map of key/value pairs. An example can be seen below
+The `vars` input is a YAML-compatible string that is parsed into a map of key/value pairs. It supports a single top-level mapping with primitive values and simple arrays. It intentionally rejects multi-document YAML, anchors, aliases, merge keys, and custom tags.
 
 Actions workflow:
 
@@ -316,6 +316,10 @@ permissions:
   issues: write
   pull-requests: write
 ```
+
+### Self-hosted Runner Proxy Support
+
+This action uses the Node.js runtime's built-in HTTP behavior for GitHub API calls. It is tested on GitHub-hosted runners; full parity with enterprise proxy environment variables on self-hosted runners is not guaranteed.
 
 ### Accessing Issues and Comments in other Repositories 🧑‍🤝‍🧑
 

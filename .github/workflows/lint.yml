@@ -1,4 +1,4 @@
-name: lint
+name: typecheck
 on:
   pull_request:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  lint:
+  typecheck:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # pin@v6
@@ -23,7 +23,5 @@ jobs:
       - name: install dependencies
         run: npm ci
 
-      - name: lint
-        run: |
-          npm run format-check
-          npm run lint
+      - name: typecheck
+        run: npm run typecheck

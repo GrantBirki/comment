@@ -34,9 +34,9 @@ committing `dist/`.
 - `src/comment.ts` - Main implementation. This file owns input parsing,
   repository and issue resolution, body/template rendering, comment creation,
   comment updates, reaction validation, and GitHub API calls.
-- `test/comment.test.ts` - Node test runner unit tests. These tests mock
-  `@actions/core`, the GitHub client, and Octokit calls so most behavior can be
-  tested without network access.
+- `test/comment.test.ts` - Node test runner unit tests. These tests mock the
+  local actions-core interface, GitHub client, and REST calls so most behavior
+  can be tested without network access.
 - `tsconfig.json` - Strict TypeScript configuration used by `npm run
   typecheck`.
 - `dist/` - Bundled runtime produced by `ncc`. Do not edit this directory by
@@ -58,12 +58,15 @@ The runtime path is intentionally small:
 2. `action.yml` runs `dist/index.js`.
 3. `dist/index.js` is generated from `src/main.ts`.
 4. `src/main.ts` awaits `run()` from `src/comment.ts`.
-5. `run()` reads inputs, validates local state, resolves the body, creates an
-   authenticated Octokit client, then either creates or updates a comment.
+5. `run()` reads inputs, validates local state, resolves the body, creates the
+   local GitHub REST client, then either creates or updates a comment.
 
 Important functions in `src/comment.ts`:
 
-- `getInputs()` reads action inputs via `@actions/core`. The deprecated
+- `LocalActionsCore` implements the small GitHub Actions command/input/output
+  surface this action needs. Keep this narrow instead of reintroducing
+  `@actions/core`.
+- `getInputs()` reads action inputs via the injected actions-core interface. The deprecated
   `reaction-type` input is still supported as a fallback when `reactions` is not
   set.
 - `sanitizeInputs()` masks the token before debug logging. Keep this behavior
@@ -73,9 +76,13 @@ Important functions in `src/comment.ts`:
   `github.context.payload`.
 - `resolveRepository()` validates `owner/repo` form and falls back to
   `GITHUB_REPOSITORY` when the input is empty.
-- `parseVars()` parses YAML template variables with `js-yaml` and requires the
-  result to be a mapping. Scalars, arrays, dates, and multi-document YAML are not
-  accepted as valid template variables.
+- `createGithubClient()` and `LocalOctokit` implement the exact GitHub REST
+  calls this action uses. Keep this narrow instead of reintroducing Octokit or
+  `@actions/github`.
+- `parseVars()` parses a narrow YAML-compatible mapping subset for template
+  variables. Top-level scalars, top-level arrays, multi-document YAML, anchors,
+  aliases, merge keys, and custom tags are not accepted as valid template
+  variables.
 - `renderComment()` renders the selected file through Nunjucks.
 - `SafeTemplateLoader` constrains Nunjucks includes to files inside the selected
   template directory, after resolving real paths. This is a security boundary.
@@ -119,8 +126,9 @@ handling changes can have real impact.
   intentionally prevents absolute includes, traversal outside the template
   directory, sibling-prefix escapes, missing-file access, and symlink escapes.
   Add tests for any change in this area.
-- Keep the `js-yaml` parser constrained to mappings for `vars`. Accepting other
-  YAML shapes changes the public template contract and can surprise users.
+- Keep the local `vars` parser constrained to the documented mapping subset.
+  Accepting broader YAML shapes can reintroduce parser complexity and surprise
+  users.
 - Nunjucks currently renders with `autoescape: true`; tests assert escaping for
   unsafe values. Be explicit and well-tested if changing escaping behavior.
 - Avoid logging full input structures unless they pass through
@@ -151,10 +159,7 @@ Common commands:
 
 ```bash
 npm test
-npm run lint
 npm run typecheck
-npm run format-check
-npm run format
 npm run package
 npm run bundle
 npm run all
@@ -162,20 +167,15 @@ npm run all
 
 What the commands do:
 
-- `npm test` runs `node --import tsx --test --experimental-test-coverage
-  test/*.test.ts`.
+- `npm test` compiles source and tests into `tmp/test-build` with `tsc`, then
+  runs `node --test --experimental-test-coverage` against the emitted test files.
 - `npm run ci-test` currently aliases `npm test`.
-- `npm run lint` runs ESLint over `src` and `test`.
 - `npm run typecheck` runs `tsc --noEmit`.
-- `npm run format-check` checks JavaScript and TypeScript formatting with
-  Prettier.
-- `npm run format` rewrites JavaScript and TypeScript formatting with Prettier.
 - `npm run package` runs `ncc build src/main.ts -o dist --source-map --license
   licenses.txt`. It sets `NODE_OPTIONS=--openssl-legacy-provider`.
-- `npm run bundle` runs `format` and then `package`.
-- `npm run all` runs `format`, `typecheck`, `lint`, `test`, and `package`.
+- `npm run bundle` currently aliases `package`.
+- `npm run all` runs `typecheck`, `test`, and `package`.
 
-Prettier and ESLint intentionally ignore `dist/`, `lib/`, and `node_modules/`.
 Generated bundles are verified by rebuilding, not formatted directly.
 
 ## Making Code Changes
@@ -185,8 +185,8 @@ Use this process for runtime changes:
 1. Edit `src/comment.ts` or `src/main.ts`.
 2. Add or update focused tests in `test/comment.test.ts`.
 3. Run `npm test`.
-4. Run `npm run typecheck`, `npm run lint`, and `npm run format-check`, or run
-   `npm run all` when a full local pass is appropriate.
+4. Run `npm run typecheck` and `npm test`, or run `npm run all` when a full local
+   pass is appropriate.
 5. Rebuild `dist/` with `npm run package` or `npm run bundle`.
 6. Inspect the diff and confirm both source and generated `dist/` changes are
    intentional.
@@ -221,14 +221,14 @@ The unit tests are the primary fast feedback path. They cover:
 - Token masking.
 - Reaction validation, de-duplication, and failure behavior.
 - Create, update, replace, append, and reaction-only action paths.
-- Early validation failures before constructing an Octokit client.
+- Early validation failures before constructing a GitHub REST client.
 - The special README hint for `Resource not accessible by integration`.
 
 Test helpers in `test/comment.test.ts` include:
 
-- `makeCore()` for mocked `@actions/core` behavior and call recording.
+- `makeCore()` for mocked actions-core behavior and call recording.
 - `makeOctokit()` for mocked GitHub REST calls.
-- `makeGithubClient()` for mocked `@actions/github` behavior.
+- `makeGithubClient()` for mocked GitHub client behavior.
 - `writeTemplate()` and `writeTemplates()` for temporary template files.
 
 Prefer extending these helpers over introducing network-dependent tests.
@@ -239,8 +239,8 @@ The CI workflows are intentionally separated:
 
 - `.github/workflows/test.yml` runs unit tests on pull requests, pushes to
   `main`, and manual dispatch.
-- `.github/workflows/lint.yml` runs Prettier check and ESLint on pull requests
-  and pushes to `main`.
+- `.github/workflows/lint.yml` is the typecheck workflow on pull requests and
+  pushes to `main`.
 - `.github/workflows/package-check.yml` rebuilds `dist/` and fails if generated
   output differs from what is committed. If the diff check fails, it uploads the
   rebuilt `dist/` as an artifact.
@@ -305,22 +305,20 @@ Important README troubleshooting topics:
 
 Runtime dependencies:
 
-- `@actions/core`
-- `@actions/github`
-- `js-yaml`
 - `nunjucks`
 
 Development dependencies:
 
 - `@vercel/ncc`
-- `eslint`
-- `prettier`
+- `typescript`
+- `@types/node`
+- `@types/nunjucks`
 
 `package-lock.json` is committed. Use `npm ci` for reproducible installs and
 commit lockfile changes when intentionally changing dependencies.
 
-The package currently overrides `undici` to `6.24.1`. Preserve that override
-unless you have verified why it is no longer needed.
+Do not reintroduce `@actions/core`, `@actions/github`, `js-yaml`, `tsx`, ESLint,
+or Prettier without a fresh dependency-reduction review.
 
 ## Style Guidelines
 
@@ -366,8 +364,6 @@ For source changes:
 npm ci
 npm run typecheck
 npm test
-npm run lint
-npm run format-check
 npm run package
 git diff --check
 ```

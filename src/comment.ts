@@ -1,10 +1,9 @@
+import {randomUUID} from 'node:crypto'
+import {EOL} from 'node:os'
 import {inspect} from 'node:util'
 import fs from 'node:fs'
 import path from 'node:path'
-import * as core from '@actions/core'
-import * as github from '@actions/github'
 import nunjucks from 'nunjucks'
-import yaml from 'js-yaml'
 
 const REACTION_TYPES = [
   '+1',
@@ -112,6 +111,7 @@ interface ListReactionOptions {
   repo: string
   comment_id: number | string
   per_page?: number
+  page?: number
 }
 
 interface ExistingReaction {
@@ -127,6 +127,7 @@ interface OctokitClient {
     iterator(
       endpoint: (options: ListReactionOptions) => Promise<{
         data: ExistingReaction[]
+        headers?: Headers
       }>,
       options: ListReactionOptions
     ): AsyncIterable<{data: ExistingReaction[]}>
@@ -150,6 +151,7 @@ interface OctokitClient {
       deleteForIssueComment(options: DeleteReactionOptions): Promise<unknown>
       listForIssueComment(options: ListReactionOptions): Promise<{
         data: ExistingReaction[]
+        headers?: Headers
       }>
     }
     users: {
@@ -163,6 +165,291 @@ interface OctokitClient {
 }
 
 type Environment = NodeJS.ProcessEnv | Record<string, string | undefined>
+
+function escapeCommandData(value: string): string {
+  return value.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A')
+}
+
+function escapeCommandProperty(value: string): string {
+  return escapeCommandData(value).replace(/:/g, '%3A').replace(/,/g, '%2C')
+}
+
+function issueCommand(
+  command: string,
+  message: string,
+  properties: Record<string, string> = {}
+): void {
+  const propertyEntries = Object.entries(properties)
+  const propertyText =
+    propertyEntries.length === 0
+      ? ''
+      : ` ${propertyEntries
+          .map(([key, value]) => `${key}=${escapeCommandProperty(value)}`)
+          .join(',')}`
+
+  process.stdout.write(`::${command}${propertyText}::${escapeCommandData(message)}${EOL}`)
+}
+
+function inputEnvironmentName(name: string): string {
+  return `INPUT_${name.replace(/ /g, '_').toUpperCase()}`
+}
+
+class LocalActionsCore implements ActionsCore {
+  constructor(private readonly env: Environment = process.env) {}
+
+  debug(message: string): void {
+    issueCommand('debug', String(message))
+  }
+
+  error(message: string): void {
+    issueCommand('error', String(message))
+  }
+
+  getInput(name: string): string {
+    return (this.env[inputEnvironmentName(name)] || '').trim()
+  }
+
+  info(message: string): void {
+    process.stdout.write(`${message}${EOL}`)
+  }
+
+  setFailed(message: string): void {
+    process.exitCode = 1
+    this.error(message)
+  }
+
+  setOutput(name: string, value: number | string): void {
+    const output = String(value)
+    const outputPath = this.env.GITHUB_OUTPUT
+
+    if (outputPath) {
+      let delimiter = `comment_${randomUUID()}`
+      while (output.includes(delimiter)) {
+        delimiter = `comment_${randomUUID()}`
+      }
+
+      fs.appendFileSync(
+        outputPath,
+        `${name}<<${delimiter}${EOL}${output}${EOL}${delimiter}${EOL}`
+      )
+      return
+    }
+
+    issueCommand('set-output', output, {name})
+  }
+
+  warning(message: string): void {
+    issueCommand('warning', String(message))
+  }
+}
+
+function readGithubPayload(env: Environment): GithubPayload {
+  const eventPath = env.GITHUB_EVENT_PATH
+  if (!eventPath || !fs.existsSync(eventPath)) {
+    return {}
+  }
+
+  try {
+    return JSON.parse(fs.readFileSync(eventPath, 'utf8')) as GithubPayload
+  } catch {
+    return {}
+  }
+}
+
+function createGithubClient(env: Environment = process.env): GithubClient {
+  return {
+    context: {
+      payload: readGithubPayload(env)
+    },
+    getOctokit(token: string): OctokitClient {
+      return new LocalOctokit(token, env)
+    }
+  }
+}
+
+interface GithubRequestOptions {
+  method: string
+  path: string
+  query?: Record<string, number | string | undefined>
+  body?: unknown
+}
+
+function encodePath(value: number | string): string {
+  return encodeURIComponent(String(value))
+}
+
+function nextPageExists(linkHeader: null | string): boolean {
+  return Boolean(linkHeader && /<[^>]+>;\s*rel="next"/.test(linkHeader))
+}
+
+class LocalOctokit implements OctokitClient {
+  private readonly apiUrl: string
+
+  constructor(
+    private readonly token: string,
+    env: Environment = process.env
+  ) {
+    this.apiUrl = (env.GITHUB_API_URL || 'https://api.github.com').replace(
+      /\/+$/,
+      ''
+    )
+  }
+
+  paginate = {
+    iterator: async function* (
+      endpoint: (options: ListReactionOptions) => Promise<{
+        data: ExistingReaction[]
+        headers?: Headers
+      }>,
+      options: ListReactionOptions
+    ): AsyncIterable<{data: ExistingReaction[]}> {
+      let page = options.page || 1
+
+      while (true) {
+        const response = await endpoint({...options, page})
+        yield {data: response.data}
+
+        if (!nextPageExists(response.headers?.get('link') || null)) {
+          return
+        }
+
+        page += 1
+      }
+    }
+  }
+
+  rest = {
+    issues: {
+      createComment: async (
+        options: CreateCommentOptions
+      ): Promise<{data: {id: number | string}}> => {
+        return this.request({
+          method: 'POST',
+          path: `/repos/${encodePath(options.owner)}/${encodePath(
+            options.repo
+          )}/issues/${encodePath(options.issue_number)}/comments`,
+          body: {body: options.body}
+        })
+      },
+      getComment: async (options: GetCommentOptions) => {
+        return this.request<{
+          body?: null | string
+        }>({
+          method: 'GET',
+          path: `/repos/${encodePath(options.owner)}/${encodePath(
+            options.repo
+          )}/issues/comments/${encodePath(options.comment_id)}`
+        })
+      },
+      updateComment: async (
+        options: UpdateCommentOptions
+      ): Promise<{data: {id: number | string}}> => {
+        return this.request({
+          method: 'PATCH',
+          path: `/repos/${encodePath(options.owner)}/${encodePath(
+            options.repo
+          )}/issues/comments/${encodePath(options.comment_id)}`,
+          body: {body: options.body}
+        })
+      }
+    },
+    reactions: {
+      createForIssueComment: async (
+        options: ReactionOptions
+      ): Promise<unknown> => {
+        return this.request({
+          method: 'POST',
+          path: `/repos/${encodePath(options.owner)}/${encodePath(
+            options.repo
+          )}/issues/comments/${encodePath(options.comment_id)}/reactions`,
+          body: {content: options.content}
+        })
+      },
+      deleteForIssueComment: async (
+        options: DeleteReactionOptions
+      ): Promise<unknown> => {
+        return this.request({
+          method: 'DELETE',
+          path: `/repos/${encodePath(options.owner)}/${encodePath(
+            options.repo
+          )}/issues/comments/${encodePath(
+            options.comment_id
+          )}/reactions/${encodePath(options.reaction_id)}`
+        })
+      },
+      listForIssueComment: async (options: ListReactionOptions) => {
+        return this.request<ExistingReaction[]>({
+          method: 'GET',
+          path: `/repos/${encodePath(options.owner)}/${encodePath(
+            options.repo
+          )}/issues/comments/${encodePath(options.comment_id)}/reactions`,
+          query: {
+            per_page: options.per_page,
+            page: options.page
+          }
+        })
+      }
+    },
+    users: {
+      getAuthenticated: async (): Promise<{
+        data: {
+          login: string
+        }
+      }> => {
+        return this.request({
+          method: 'GET',
+          path: '/user'
+        })
+      }
+    }
+  }
+
+  private async request<T>({
+    method,
+    path: requestPath,
+    query = {},
+    body
+  }: GithubRequestOptions): Promise<{data: T; headers: Headers}> {
+    const url = new URL(`${this.apiUrl}${requestPath}`)
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined) {
+        url.searchParams.set(key, String(value))
+      }
+    }
+
+    const headers: Record<string, string> = {
+      accept: 'application/vnd.github+json',
+      authorization: `Bearer ${this.token}`,
+      'user-agent': 'GrantBirki/comment',
+      'x-github-api-version': '2022-11-28'
+    }
+
+    if (body !== undefined) {
+      headers['content-type'] = 'application/json'
+    }
+
+    const response = await fetch(url, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body)
+    })
+
+    const responseText = await response.text()
+    const data = responseText ? JSON.parse(responseText) : undefined
+
+    if (!response.ok) {
+      const message =
+        data && typeof data === 'object' && 'message' in data
+          ? String(data.message)
+          : `${response.status} ${response.statusText}`
+      throw new Error(message)
+    }
+
+    return {data: data as T, headers: response.headers}
+  }
+}
+
+const defaultActionsCore = new LocalActionsCore()
 
 class SafeTemplateLoader extends nunjucks.Loader {
   private readonly searchPath: string
@@ -213,7 +500,7 @@ class SafeTemplateLoader extends nunjucks.Loader {
   }
 }
 
-function getInputs(actionsCore: ActionsCore = core): ActionInputs {
+function getInputs(actionsCore: ActionsCore = defaultActionsCore): ActionInputs {
   const reactions =
     actionsCore.getInput('reactions') || actionsCore.getInput('reaction-type')
 
@@ -289,29 +576,238 @@ function resolveRepository(
   }
 }
 
+interface VarsLine {
+  indent: number
+  text: string
+}
+
+function stripComment(line: string): string {
+  let quote: null | string = null
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+    const previous = line[i - 1]
+
+    if ((char === '"' || char === "'") && previous !== '\\') {
+      quote = quote === char ? null : quote || char
+      continue
+    }
+
+    if (!quote && char === '#' && (!previous || /\s/.test(previous))) {
+      return line.slice(0, i)
+    }
+  }
+
+  return line
+}
+
+function assertSupportedVarsSyntax(text: string): void {
+  if (/^!/.test(text) || /:\s*!/.test(text)) {
+    throw new Error("The 'vars' input does not support custom YAML tags")
+  }
+
+  if (/^\s*<<\s*:/.test(text) || /:\s*<<\s*:/.test(text)) {
+    throw new Error("The 'vars' input does not support YAML merge keys")
+  }
+
+  if (/(^|\s)&[A-Za-z0-9_-]+/.test(text)) {
+    throw new Error("The 'vars' input does not support YAML anchors")
+  }
+
+  if (/(^|\s)\*[A-Za-z0-9_-]+/.test(text)) {
+    throw new Error("The 'vars' input does not support YAML aliases")
+  }
+}
+
+function prepareVarsLines(vars: string): VarsLine[] {
+  const rawLines = vars.replace(/\r\n?/g, '\n').split('\n')
+  const lines: VarsLine[] = []
+  let sawContent = false
+  let sawDocumentStart = false
+
+  for (const rawLine of rawLines) {
+    if (/^\t+/.test(rawLine)) {
+      throw new Error("The 'vars' input must use spaces for indentation")
+    }
+
+    const withoutComment = stripComment(rawLine).replace(/\s+$/, '')
+    const text = withoutComment.trim()
+
+    if (!text) {
+      continue
+    }
+
+    if (text === '---') {
+      if (sawContent || sawDocumentStart) {
+        throw new Error('expected a single document in the vars input')
+      }
+      sawDocumentStart = true
+      continue
+    }
+
+    if (text === '...') {
+      throw new Error('expected a single document in the vars input')
+    }
+
+    sawContent = true
+    assertSupportedVarsSyntax(text)
+    lines.push({
+      indent: withoutComment.length - withoutComment.trimStart().length,
+      text
+    })
+  }
+
+  return lines
+}
+
+function findMappingSeparator(text: string): number {
+  let quote: null | string = null
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i]
+    const previous = text[i - 1]
+
+    if ((char === '"' || char === "'") && previous !== '\\') {
+      quote = quote === char ? null : quote || char
+      continue
+    }
+
+    if (!quote && char === ':') {
+      return i
+    }
+  }
+
+  return -1
+}
+
+function parseVarsScalar(value: string): unknown {
+  if (value === 'true') {
+    return true
+  }
+
+  if (value === 'false') {
+    return false
+  }
+
+  if (value === 'null' || value === '~') {
+    return null
+  }
+
+  if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?$/.test(value)) {
+    return Number(value)
+  }
+
+  if (value.startsWith('"') && value.endsWith('"')) {
+    return JSON.parse(value)
+  }
+
+  if (value.startsWith("'") && value.endsWith("'")) {
+    return value.slice(1, -1).replace(/''/g, "'")
+  }
+
+  if (value.startsWith('[') && value.endsWith(']')) {
+    const inner = value.slice(1, -1).trim()
+    if (!inner) {
+      return []
+    }
+    return inner.split(',').map(item => parseVarsScalar(item.trim()))
+  }
+
+  return value
+}
+
+function parseVarsBlock(
+  lines: VarsLine[],
+  index: number,
+  indent: number
+): {nextIndex: number; value: unknown} {
+  if (lines[index]?.text.startsWith('- ')) {
+    const values: unknown[] = []
+
+    while (index < lines.length && lines[index]?.indent === indent) {
+      const line = lines[index]
+      if (!line?.text.startsWith('- ')) {
+        throw new Error("The 'vars' input must be a YAML mapping")
+      }
+
+      const item = line.text.slice(2).trim()
+      if (!item) {
+        const nextLine = lines[index + 1]
+        if (nextLine && nextLine.indent > indent) {
+          const parsed = parseVarsBlock(lines, index + 1, nextLine.indent)
+          values.push(parsed.value)
+          index = parsed.nextIndex
+          continue
+        }
+        values.push(null)
+      } else {
+        values.push(parseVarsScalar(item))
+      }
+      index += 1
+    }
+
+    return {nextIndex: index, value: values}
+  }
+
+  const mapping: Record<string, unknown> = {}
+
+  while (index < lines.length && lines[index]?.indent === indent) {
+    const line = lines[index]
+    if (!line || line.text.startsWith('- ')) {
+      throw new Error("The 'vars' input must be a YAML mapping")
+    }
+
+    const separator = findMappingSeparator(line.text)
+    if (separator < 1) {
+      throw new Error("The 'vars' input must be a YAML mapping")
+    }
+
+    const key = line.text.slice(0, separator).trim()
+    const rawValue = line.text.slice(separator + 1).trim()
+
+    if (!key || key === '<<') {
+      throw new Error("The 'vars' input must be a YAML mapping")
+    }
+
+    if (!rawValue) {
+      const nextLine = lines[index + 1]
+      if (nextLine && nextLine.indent > indent) {
+        const parsed = parseVarsBlock(lines, index + 1, nextLine.indent)
+        mapping[key] = parsed.value
+        index = parsed.nextIndex
+        continue
+      }
+      mapping[key] = null
+    } else {
+      mapping[key] = parseVarsScalar(rawValue)
+    }
+
+    index += 1
+  }
+
+  return {nextIndex: index, value: mapping}
+}
+
 function parseVars(vars: string): Record<string, unknown> {
   if (!vars) {
     return {}
   }
 
-  const parsed = yaml.load(vars, {
-    schema: yaml.JSON_SCHEMA,
-    json: true
-  })
-
-  if (parsed === undefined || parsed === null) {
+  const lines = prepareVarsLines(vars)
+  if (lines.length === 0) {
     return {}
   }
 
-  if (
-    typeof parsed !== 'object' ||
-    Array.isArray(parsed) ||
-    parsed instanceof Date
-  ) {
+  if (lines[0]?.indent !== 0 || lines[0]?.text.startsWith('- ')) {
     throw new Error("The 'vars' input must be a YAML mapping")
   }
 
-  return parsed as Record<string, unknown>
+  const parsed = parseVarsBlock(lines, 0, 0)
+  if (parsed.nextIndex !== lines.length || Array.isArray(parsed.value)) {
+    throw new Error("The 'vars' input must be a YAML mapping")
+  }
+
+  return parsed.value as Record<string, unknown>
 }
 
 async function renderComment(file: string, vars: string): Promise<string> {
@@ -340,7 +836,7 @@ function isReactionsEditMode(mode: string): mode is ReactionsEditMode {
 
 function validReactions(
   reactions: string,
-  actionsCore: ActionsCore = core
+  actionsCore: ActionsCore = defaultActionsCore
 ): ReactionType[] {
   return [
     ...new Set(
@@ -364,7 +860,7 @@ async function addReactionSet(
   repo: Repository,
   commentId: number | string,
   reactionSet: ReactionType[],
-  actionsCore: ActionsCore = core
+  actionsCore: ActionsCore = defaultActionsCore
 ): Promise<boolean> {
   const results = await Promise.allSettled(
     reactionSet.map(async item => {
@@ -411,7 +907,7 @@ async function addReactions(
   repo: Repository,
   commentId: number | string,
   reactions: string,
-  actionsCore: ActionsCore = core
+  actionsCore: ActionsCore = defaultActionsCore
 ): Promise<boolean> {
   const reactionSet = validReactions(reactions, actionsCore)
 
@@ -428,7 +924,7 @@ async function removeReactions(
   repo: Repository,
   commentId: number | string,
   reactions: ExistingReaction[],
-  actionsCore: ActionsCore = core
+  actionsCore: ActionsCore = defaultActionsCore
 ): Promise<boolean> {
   const results = await Promise.allSettled(
     reactions.map(async reaction => {
@@ -524,7 +1020,7 @@ async function replaceReactions(
   repo: Repository,
   commentId: number | string,
   reactionSet: ReactionType[],
-  actionsCore: ActionsCore = core
+  actionsCore: ActionsCore = defaultActionsCore
 ): Promise<boolean> {
   const authenticatedUser = await getAuthenticatedUser(octokit)
   const userReactions = await getCommentReactionsForUser(
@@ -556,7 +1052,7 @@ async function applyReactions(
   commentId: number | string,
   reactions: string,
   reactionsEditMode: string,
-  actionsCore: ActionsCore = core
+  actionsCore: ActionsCore = defaultActionsCore
 ): Promise<boolean> {
   const reactionSet = validReactions(reactions, actionsCore)
 
@@ -583,7 +1079,10 @@ function appendSeparatorTo(body: string, separator: string): string {
   }
 }
 
-function truncateBody(body: string, actionsCore: ActionsCore = core): string {
+function truncateBody(
+  body: string,
+  actionsCore: ActionsCore = defaultActionsCore
+): string {
   if (body.length <= COMMENT_BODY_MAX_LENGTH) {
     return body
   }
@@ -709,11 +1208,11 @@ interface RunOptions {
   env?: Environment
 }
 
-async function run({
-  actionsCore = core,
-  githubClient = github as unknown as GithubClient,
-  env = process.env
-}: RunOptions = {}): Promise<void> {
+async function run(options: RunOptions = {}): Promise<void> {
+  const actionsCore = options.actionsCore || defaultActionsCore
+  const env = options.env || process.env
+  const githubClient = options.githubClient || createGithubClient(env)
+
   try {
     const inputs = getInputs(actionsCore)
     const issueNumberFallback = resolveIssueNumber(
@@ -783,12 +1282,14 @@ async function run({
 }
 
 export {
+  LocalActionsCore,
   REACTION_TYPES,
   SafeTemplateLoader,
   addReactions,
   appendSeparatorTo,
   applyReactions,
   createComment,
+  createGithubClient,
   getInputs,
   getAuthenticatedUser,
   getCommentReactionsForUser,
