@@ -6370,7 +6370,7 @@ var external_node_path_default = /*#__PURE__*/__nccwpck_require__.n(external_nod
 var nunjucks = __nccwpck_require__(115);
 var nunjucks_default = /*#__PURE__*/__nccwpck_require__.n(nunjucks);
 ;// CONCATENATED MODULE: ./src/version.ts
-const VERSION = 'v3.0.1';
+const VERSION = 'v3.0.2';
 
 ;// CONCATENATED MODULE: ./src/comment.ts
 
