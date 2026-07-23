@@ -12,8 +12,12 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
+      - uses: openai/fence@db291f5c51949e6e6ec1634621b36dc4bbf3d54a # pin@v0.8.7
+        with:
+          mode: audit
+
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # pin@v6
         with:
           persist-credentials: false
