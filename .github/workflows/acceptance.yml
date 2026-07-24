@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: openai/fence@c22db5d5c19f83d1d7b40e9def37a7a6099bbca2 # pin@v0.8.10
 
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # pin@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # pin@v6
         with:
           persist-credentials: false
 
