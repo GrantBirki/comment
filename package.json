@@ -31,7 +31,7 @@
   "devDependencies": {
     "@types/node": "^25.6.0",
     "@types/nunjucks": "^3.2.6",
-    "@vercel/ncc": "^0.38.4",
+    "@vercel/ncc": "^0.44.0",
     "typescript": "^6.0.3"
   }
 }
