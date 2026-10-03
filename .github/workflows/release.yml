@@ -109,7 +109,7 @@ jobs:
           fi
 
       - name: attest release bundle
-        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # pin@v4.1.1
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # pin@v4.2.2
         with:
           subject-path: |
             action.yml
