@@ -14,17 +14,17 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: openai/fence@c22db5d5c19f83d1d7b40e9def37a7a6099bbca2 # pin@v0.8.10
+      - uses: openai/fence@e6b39c80c51cb2b2a39448ddeff74b3b886c0a63 # pin@v0.10.0
         with:
           allowlist: |
             tcp://registry.npmjs.org:443
 
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # pin@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pin@v6
         with:
           persist-credentials: false
 
       - name: setup node
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # pin@v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # pin@v6
         with:
           node-version-file: .node-version
           cache: 'npm'
