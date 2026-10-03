@@ -12,7 +12,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: openai/fence@c22db5d5c19f83d1d7b40e9def37a7a6099bbca2 # pin@v0.8.10
+      - uses: openai/fence@e6b39c80c51cb2b2a39448ddeff74b3b886c0a63 # pin@v0.10.0
         with:
           allowlist: |
             tcp://registry.npmjs.org:443
