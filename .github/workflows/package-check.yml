@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: openai/fence@c7675fea986c29f1d655753a7a61fd6b4141be8f # pin@v0.13.0
+      - uses: openai/fence@7703f3be10ee3d0a84e1839233e19fa00bb254a8 # pin@v0.13.2
         with:
           allowlist: |
             tcp://registry.npmjs.org:443
